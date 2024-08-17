@@ -1,15 +1,20 @@
+use super::{
+    buffer::Buffer,
+    constants::character::{
+        ctrl_chars, printable_ascii_characters, triplet_char_actions,
+    },
+    err::InitializationError,
+    io::IOHandler,
+    key_mapper::{BindingPresentError, KeyMapper, KeypressAction},
+};
+use crate::{
+    catch_error, core::constants::character::general_ascii_chars,
+    platform::unix_signals::SIGNAL,
+};
 use std::{
     mem::MaybeUninit,
     rc::Rc,
     sync::{Arc, Mutex, Once},
-};
-
-use super::{
-    buffer::Buffer,
-    constants::character::PRINTABLE_ASCII_CHARACTERS,
-    err::InitializationError,
-    io::IOHandler,
-    key_mapper::{KeyMapper, KeypressAction},
 };
 
 type MutArc<T> = Arc<Mutex<T>>;
@@ -19,9 +24,12 @@ pub fn get_term_state() -> (
     &'static MutArc<Buffer>,
     &'static Rc<KeyMapper>,
 ) {
-    static mut HANDLER_STATE: MaybeUninit<MutArc<IOHandler>> = MaybeUninit::uninit();
-    static mut BUFFER_STATE: MaybeUninit<MutArc<Buffer>> = MaybeUninit::uninit();
-    static mut KEY_MAPPER_STATE: MaybeUninit<Rc<KeyMapper>> = MaybeUninit::uninit();
+    static mut HANDLER_STATE: MaybeUninit<MutArc<IOHandler>> =
+        MaybeUninit::uninit();
+    static mut BUFFER_STATE: MaybeUninit<MutArc<Buffer>> =
+        MaybeUninit::uninit();
+    static mut KEY_MAPPER_STATE: MaybeUninit<Rc<KeyMapper>> =
+        MaybeUninit::uninit();
     static INIT_ONCE: Once = Once::new();
 
     unsafe {
@@ -43,50 +51,121 @@ pub fn get_term_state() -> (
     }
 }
 
-pub fn init_keymapper() -> Result<KeyMapper, InitializationError> {
+fn add_multi_char_action(
+    key_mapper: &mut KeyMapper,
+    keys: &[u8],
+    action: KeypressAction,
+) -> Result<(), BindingPresentError> {
+    for (idx, val) in keys[0..keys.len() - 1].iter().enumerate() {
+        let x = *val;
+
+        // if this is already present then we don't care, its a good thing
+        let _ = key_mapper.register_binding(
+            &keys[0..=idx],
+            Box::new(move || KeypressAction::Buffer(x)),
+        );
+    }
+
+    // if this is not present we are running into some problem will have to
+    // take look at the initialization of keymapper
+    key_mapper.register_binding(keys, Box::new(move || action))?;
+
+    Ok(())
+}
+
+fn init_keymapper() -> Result<KeyMapper, InitializationError> {
     let mut key_mapper = KeyMapper::new();
 
     // Initialize keypress action for alphanumeric characters
     for character in ('a'..='z').chain('A'..='Z').chain('0'..='9') {
-        if key_mapper
-            .register_binding(
-                &[character as u8],
-                Box::new(move || KeypressAction::Return(character as u8)),
-            )
-            .is_err()
-        {
-            return Err(InitializationError {});
-        }
+        catch_error!(
+            key_mapper
+                .register_binding(
+                    &[character as u8],
+                    Box::new(move || KeypressAction::Return(character as u8)),
+                ) => InitializationError{}
+        );
     }
 
     // Initialize keypress action for non-alphanumeric characters
-    for character in PRINTABLE_ASCII_CHARACTERS {
-        if key_mapper
-            .register_binding(
-                &[character],
-                Box::new(move || KeypressAction::Return(character)),
-            )
-            .is_err()
-        {
-            return Err(InitializationError {});
-        }
+    for character in printable_ascii_characters::ALL_CHARS.iter() {
+        catch_error!(
+            key_mapper
+                .register_binding(
+                    &[*character],
+                    Box::new(move || KeypressAction::Return(*character)),
+                ) => InitializationError {}
+        );
     }
 
-    // These are all CTRL-<Alphabhet> inputs
-    // TODO: for now we are just echoing the bytes but we would want it do actual implementation
-    // what these keys actually do for like C-c to send SIGINT and C-z to send SIGSTP
-    // Exception C-i and TAB have same ascii value so we are ignoring C-i here
-    for character in (1..=8).chain(9..=26) {
-        if key_mapper
-            .register_binding(
-                &[character as u8],
-                Box::new(move || KeypressAction::Return(character as u8)),
-            )
-            .is_err()
-        {
-            return Err(InitializationError {});
+    for character in general_ascii_chars::ALL_GENERAL_CHARS.iter() {
+        if *character == general_ascii_chars::ESC {
+            continue;
         }
+
+        catch_error!(
+            key_mapper
+                .register_binding(
+                    &[*character],
+                    Box::new(move || KeypressAction::Return(*character)),
+                ) => InitializationError {}
+        );
     }
+
+    // Essential linux shell signals mapping
+    catch_error!(
+        key_mapper.register_binding(
+            &[ctrl_chars::CTRL_C],
+            Box::new(move || KeypressAction::Signal(SIGNAL::SIGINT)),
+        ) => InitializationError{}
+    );
+
+    catch_error!(
+        key_mapper.register_binding(
+            &[ctrl_chars::CTRL_Z],
+            Box::new(move || KeypressAction::Signal(SIGNAL::SIGSTOP)),
+        ) => InitializationError{}
+    );
+
+    catch_error!(
+        key_mapper.register_binding(
+        &[ctrl_chars::CTRL_D],
+        Box::new(move || KeypressAction::Signal(SIGNAL::SIGQUIT)),
+        ) => InitializationError{}
+    );
+
+    // multi-char actions
+    catch_error!(
+        add_multi_char_action(
+            &mut key_mapper,
+            &triplet_char_actions::UP,
+            KeypressAction::Action(triplet_char_actions::Chars::Up),
+        ) => InitializationError{}
+    );
+
+    catch_error!(
+        add_multi_char_action(
+            &mut key_mapper,
+            &triplet_char_actions::DOWN,
+            KeypressAction::Action(triplet_char_actions::Chars::Down),
+        ) => InitializationError{}
+    );
+
+    catch_error!(
+        add_multi_char_action(
+            &mut key_mapper,
+            &triplet_char_actions::LEFT,
+            KeypressAction::Action(triplet_char_actions::Chars::Left),
+        ) => InitializationError{}
+    );
+
+    catch_error!(
+        add_multi_char_action(
+            &mut key_mapper,
+            &triplet_char_actions::RIGHT,
+            KeypressAction::Action(triplet_char_actions::Chars::Right),
+        ) => InitializationError{}
+    );
 
     Ok(key_mapper)
 }

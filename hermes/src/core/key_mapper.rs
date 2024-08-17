@@ -1,12 +1,19 @@
+use super::constants::character::triplet_char_actions;
+use super::master_cmd::MasterCmd;
+use crate::platform::unix_signals::SIGNAL;
 use std::collections::HashMap;
 use std::fmt;
 use std::result::Result;
 
-const PRIME: u32 = 1007;
+const PRIME: u32 = 199;
 
+#[derive(Clone, Copy, Debug)]
 pub enum KeypressAction {
     Return(u8),
     Buffer(u8),
+    Signal(SIGNAL),
+    Action(triplet_char_actions::Chars),
+    MasterCommand(MasterCmd),
 }
 
 pub struct KeyMapper {
@@ -79,10 +86,9 @@ impl KeyMapper {
     ) -> Result<&Box<dyn Fn() -> KeypressAction>, BindingNotPresentError> {
         let key = hash(keys);
 
-        if self.key_fn_map.get(&key).is_some() {
+        if self.key_fn_map.get(&key).is_none() {
             return Err(BindingNotPresentError { hash: key });
         }
-
         Ok(self.key_fn_map.get(&key).unwrap())
     }
 }

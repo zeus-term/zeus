@@ -1,15 +1,12 @@
-use std::io::{self, Read, Stderr, Stdin, Stdout};
+use std::io::{self, Read, Stderr, Stdin, Stdout, Write};
 
 use nix::libc;
 
 pub struct IOHandler {
     // Don't have to tell what these are :)
-    input: Stdin,
-    output: Stdout,
-    err: Stderr,
-
-    // Buffer to store the any input buffering we need
-    in_buf: Vec<u8>,
+    in_stream: Stdin,
+    out_stream: Stdout,
+    err_stream: Stderr,
 
     // Just termios related things
     c_cflag: Option<u32>,
@@ -21,10 +18,9 @@ pub struct IOHandler {
 impl IOHandler {
     pub fn new() -> IOHandler {
         IOHandler {
-            input: io::stdin(),
-            output: io::stdout(),
-            err: io::stderr(),
-            in_buf: Vec::new(),
+            in_stream: io::stdin(),
+            out_stream: io::stdout(),
+            err_stream: io::stderr(),
 
             c_cflag: None,
             c_iflag: None,
@@ -35,8 +31,22 @@ impl IOHandler {
 
     pub fn read(&mut self) -> std::io::Result<u8> {
         let mut data = vec![0u8; 1];
-        match self.input.read(&mut data) {
+        match self.in_stream.read(&mut data) {
             Ok(_) => Ok(data[0]),
+            Err(err) => Err(err),
+        }
+    }
+
+    pub fn write_byte(&mut self, data: u8) -> std::io::Result<()> {
+        match self.out_stream.write(&[data]) {
+            Ok(_) => Ok(()),
+            Err(err) => Err(err),
+        }
+    }
+
+    pub fn write_str(&mut self, data: &[u8]) -> std::io::Result<()> {
+        match self.out_stream.write(data) {
+            Ok(_) => Ok(()),
             Err(err) => Err(err),
         }
     }
@@ -56,7 +66,7 @@ impl IOHandler {
 
         unsafe {
             libc::cfmakeraw(&mut termios);
-            libc::tcsetattr(0, libc::TCSADRAIN, &termios);
+            libc::tcsetattr(0, libc::TCSANOW, &termios);
         }
 
         Ok(())
@@ -79,18 +89,10 @@ impl IOHandler {
         }
 
         unsafe {
-            libc::tcsetattr(0, libc::TCSADRAIN, &termios);
+            libc::tcsetattr(0, libc::TCSANOW, &termios);
         }
 
         Ok(())
-    }
-
-    pub fn buf_data(&mut self, data: u8) {
-        self.in_buf.push(data);
-    }
-
-    pub fn clear_buffer(&mut self) {
-        self.in_buf.clear();
     }
 }
 
