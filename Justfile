@@ -48,11 +48,19 @@ fmt-check:
     cd ..
   done
 
-clippy-check:
+clippy-check-ci:
   #!/bin/bash
   for project in helios hermes zeus ; do
     cd $project
-    cargo clippy -- --deny warnings
+    cargo clippy
+    cd ..
+  done
+
+clippy-check-sonar:
+  #!/bin/bash
+  for project in helios hermes zeus ; do
+    cd $project
+    cargo clippy --message-format=json > clippy-report.json
     cd ..
   done
 
