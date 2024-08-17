@@ -39,3 +39,28 @@ _build_projects:
 
 # To build all the components of zeus
 build: _build_projects && rust_release_file_size 
+
+fmt-check:
+  #!/bin/bash
+  for project in helios hermes zeus ; do
+    cd $project
+    cargo fmt --all -- --check
+    cd ..
+  done
+
+clippy-check:
+  #!/bin/bash
+  for project in helios hermes zeus ; do
+    cd $project
+    cargo clippy -- --deny warnings
+    cd ..
+  done
+
+test:
+  #!/bin/bash
+  for project in helios hermes zeus ; do
+    cd $project
+    cargo test
+    cd ..
+  done
+

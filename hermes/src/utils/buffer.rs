@@ -24,7 +24,10 @@ pub fn handle_input(
                 general_ascii_chars::ENTER => {
                     // TODO: Submit the command to the master
                     handler.enable_line_buffering()?;
-                    println!("\n{}", String::from_utf8(buffer.active.clone()).unwrap());
+                    println!(
+                        "\n{}",
+                        String::from_utf8(buffer.active.clone()).unwrap()
+                    );
                     // TODO: Properly handle errors
                     let _ = buffer.step_forward();
                     handler.disable_line_buffering()?;
