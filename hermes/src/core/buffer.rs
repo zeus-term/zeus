@@ -73,7 +73,7 @@ impl Buffer {
 
     pub fn step_backward(&mut self) -> Result<(), CanNotGoBackError> {
         if self.history.is_empty() || self.history_ref == 0 {
-            return Err(CanNotGoBackError{});
+            return Err(CanNotGoBackError {});
         }
 
         self.active = self.history.get(self.history_ref - 1).unwrap().to_vec();

@@ -1,6 +1,6 @@
-use super::constants::character::triplet_char_actions;
 use super::master_cmd::MasterCmd;
 use crate::platform::unix_signals::SIGNAL;
+use common::constants::character::triplet_char_actions;
 use std::collections::HashMap;
 use std::fmt;
 use std::result::Result;

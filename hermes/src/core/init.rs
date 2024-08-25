@@ -1,15 +1,17 @@
+use crate::platform::unix_signals::SIGNAL;
+
 use super::{
     buffer::Buffer,
-    constants::character::{
-        ctrl_chars, printable_ascii_characters, triplet_char_actions,
-    },
     err::InitializationError,
     io::IOHandler,
     key_mapper::{BindingPresentError, KeyMapper, KeypressAction},
 };
-use crate::{
-    catch_error, core::constants::character::general_ascii_chars,
-    platform::unix_signals::SIGNAL,
+use common::{
+    catch_error,
+    constants::character::{
+        ctrl_chars, general_ascii_chars, printable_ascii_characters,
+        triplet_char_actions,
+    },
 };
 use std::{
     mem::MaybeUninit,

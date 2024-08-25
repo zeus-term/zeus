@@ -1,3 +1,4 @@
+projects := "zeus hermes helios common"
 alias dz := dev-zeus
 alias dt := dev-term
 
@@ -15,7 +16,7 @@ dev-term:
 
 fmt:
   #!/usr/bin/env bash
-  for project in zeus hermes; do
+  for project in {{projects}}; do
     cd $project
     cargo fmt
     cd ..
@@ -23,7 +24,7 @@ fmt:
 
 rust_release_file_size:
   #!/usr/bin/env bash
-  for project in zeus hermes; do
+  for project in {{projects}}; do
     size=$(cd $project && ls -alih target/release/$project | awk '{print $6}')
     echo "Size of $project := $size"
   done
@@ -42,7 +43,7 @@ build: _build_projects && rust_release_file_size
 
 fmt-check:
   #!/bin/bash
-  for project in helios hermes zeus ; do
+  for project in {{projects}} ; do
     cd $project
     cargo fmt --all -- --check
     cd ..
@@ -50,7 +51,7 @@ fmt-check:
 
 clippy-check-ci:
   #!/bin/bash
-  for project in helios hermes zeus ; do
+  for project in {{projects}} ; do
     cd $project
     cargo clippy
     cd ..
@@ -58,7 +59,7 @@ clippy-check-ci:
 
 clippy-check-sonar:
   #!/bin/bash
-  for project in helios hermes zeus ; do
+  for project in {{projects}} ; do
     cd $project
     cargo clippy --message-format=json > clippy-report.json
     cd ..
@@ -66,7 +67,7 @@ clippy-check-sonar:
 
 test:
   #!/bin/bash
-  for project in helios hermes zeus ; do
+  for project in {{projects}} ; do
     cd $project
     cargo test
     cd ..

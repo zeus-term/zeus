@@ -2,14 +2,10 @@ use std::io;
 
 use super::term;
 use super::term::{DataWriteOrder, DisplaceDirection, PostCaretPosition};
-use crate::core::{
-    buffer::Buffer,
-    constants::character::{
-        general_ascii_chars, printable_ascii_characters::SPACE,
-        triplet_char_actions,
-    },
-    io::IOHandler,
-    key_mapper::KeypressAction,
+use crate::core::{buffer::Buffer, io::IOHandler, key_mapper::KeypressAction};
+use common::constants::character::{
+    general_ascii_chars, printable_ascii_characters::SPACE,
+    triplet_char_actions,
 };
 use std::iter;
 
