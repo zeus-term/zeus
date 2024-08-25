@@ -1,7 +1,5 @@
 use std::{fmt, usize};
 
-use crate::utils::stack::Stack;
-
 type Command = Vec<u8>;
 
 #[derive(Debug, Clone)]
@@ -16,10 +14,11 @@ pub struct CanNotGoBackError;
 pub struct CannotBufferData;
 
 pub struct Buffer {
-    stack: Stack<Command>,
     caret: usize,
-    pub active: Vec<u8>,
+    history: Vec<Command>,
+    history_ref: usize,
 
+    pub active: Command,
     pub in_buf: Vec<u8>,
 }
 
@@ -54,33 +53,38 @@ impl Default for Buffer {
 impl Buffer {
     pub fn new() -> Buffer {
         Buffer {
-            stack: Stack::new(),
             caret: 0,
             active: Vec::new(),
             in_buf: Vec::new(),
+
+            history: Vec::new(),
+            history_ref: 0,
         }
     }
 
-    pub fn step_forward(&mut self) -> Result<(), ExecutionFailed> {
-        self.stack.push(self.active.clone());
+    pub fn push_active_command(&mut self) -> Result<(), ExecutionFailed> {
+        self.history.push(self.active.clone());
 
         self.active.clear();
         self.caret = 0;
+        self.history_ref = self.history.len();
         Ok(())
     }
 
     pub fn step_backward(&mut self) -> Result<(), CanNotGoBackError> {
-        let top = self.stack.pop();
-
-        match top {
-            Some(data) => {
-                self.stack.push(data.clone());
-                self.stack.push(data.clone());
-                self.active = data;
-                Ok(())
-            }
-            None => Err(CanNotGoBackError {}),
+        if self.history.is_empty() || self.history_ref == 0 {
+            return Err(CanNotGoBackError{});
         }
+
+        self.active = self.history.get(self.history_ref - 1).unwrap().to_vec();
+        self.history_ref -= 1;
+        self.caret = self.active.len();
+
+        Ok(())
+    }
+
+    pub fn step_forward(&mut self) -> Result<(), CanNotGoBackError> {
+        Ok(())
     }
 
     pub fn buf_data(&mut self, data: u8) -> Result<(), CannotBufferData> {

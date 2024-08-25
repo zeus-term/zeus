@@ -11,6 +11,7 @@ use crate::core::{
     io::IOHandler,
     key_mapper::KeypressAction,
 };
+use std::iter;
 
 /// Utility function for buffer data structure related functions for performing crud on it
 pub fn handle_input(
@@ -29,7 +30,7 @@ pub fn handle_input(
                         String::from_utf8(buffer.active.clone()).unwrap()
                     );
                     // TODO: Properly handle errors
-                    let _ = buffer.step_forward();
+                    let _ = buffer.push_active_command();
                     handler.disable_line_buffering()?;
                 }
                 general_ascii_chars::TAB => {
@@ -84,7 +85,32 @@ pub fn handle_input(
         KeypressAction::Action(action) => {
             match action {
                 triplet_char_actions::Chars::Up => {
+                    term::write(
+                        Some(
+                            &iter::repeat(SPACE)
+                                .take(buffer.active.len())
+                                .collect::<Vec<u8>>(),
+                        ),
+                        buffer.active.len(),
+                        PostCaretPosition::Stay,
+                        DisplaceDirection::Left,
+                        DataWriteOrder::PostCaretMovement,
+                    );
+                    term::write(
+                        None,
+                        buffer.active.len(),
+                        PostCaretPosition::Stay,
+                        DisplaceDirection::Left,
+                        DataWriteOrder::NoData,
+                    );
                     let _ = buffer.step_backward();
+                    term::write(
+                        Some(&buffer.active),
+                        0,
+                        PostCaretPosition::Stay,
+                        DisplaceDirection::None,
+                        DataWriteOrder::PostCaretMovement,
+                    );
                 }
                 triplet_char_actions::Chars::Down => {
                     println!();

@@ -38,6 +38,13 @@ impl<T> Stack<T> {
             None
         }
     }
+
+    pub fn top(&self) -> Option<&T> {
+        match &self.top {
+            Some(data) => Some(&data.data),
+            None => None,
+        }
+    }
 }
 
 impl<T> Default for Stack<T> {
