@@ -1,3 +1,18 @@
+pub mod socket {
+    pub const HELIOS_COMM: &str = "/tmp/zeus-helios.sock";
+    pub const HERMES_COMM: &str = "/tmp/zeus-hermes.sock";
+}
+
+pub mod msg_directives {
+    use crate::str_vec;
+
+    pub const CREATE_PTY: &[u8] = str_vec!("CREATE_PTY");
+}
+
+pub mod unix_paths {
+    pub const ETC_PASSWD: &str = "/etc/passwd";
+}
+
 pub mod character {
     use crate::declare_all_consts;
 
@@ -52,6 +67,8 @@ pub mod character {
             CTRL_FW_SLASH, CtrlFwSlash:   0x1F,
             CTRL_SPACE, CtrlSpace:   0x00,
             BACKSPACE, Backspace: 0x7F,
+            NEWLINE, Newline: 0x0A,
+            EOF, EndOfFile: 0x04,
         }
     );
 

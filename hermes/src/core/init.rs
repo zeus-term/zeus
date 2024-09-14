@@ -101,7 +101,10 @@ fn init_keymapper() -> Result<KeyMapper, InitializationError> {
     }
 
     for character in general_ascii_chars::ALL_GENERAL_CHARS.iter() {
-        if *character == general_ascii_chars::ESC {
+        if *character == general_ascii_chars::ESC
+            || *character == general_ascii_chars::EOF
+            || *character == general_ascii_chars::NEWLINE
+        {
             continue;
         }
 

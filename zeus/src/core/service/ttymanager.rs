@@ -24,23 +24,5 @@ impl TtyManager {
         }
     }
 
-    pub fn create_pty(&mut self) -> Result<String, ()> {
-        info!("Creating new pty");
-        match posix_openpt(OFlag::O_RDWR) {
-            Ok(master) => {
-                grantpt(&master).unwrap();
-
-                match ptsname_r(&master) {
-                    Ok(ptsname) => {
-                        self.pty_cache.insert(ptsname.clone(), master);
-                        self.active_ttys += 1;
-                        info!("Creating pty, ptsname: {}", ptsname);
-                        Ok(ptsname)
-                    }
-                    Err(_) => Err(()),
-                }
-            }
-            Err(_) => Err(()),
-        }
-    }
+    // pub fn create_pty(&mut self) -> Result<String, ()> {}
 }

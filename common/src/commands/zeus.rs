@@ -4,6 +4,7 @@ use super::traits::Cmd;
 pub enum Command {
     Exec { binary: String, args: Vec<String> },
     ShowCompletions { partial_cmd: String },
+    CreatePty,
 }
 
 impl Cmd for Command {

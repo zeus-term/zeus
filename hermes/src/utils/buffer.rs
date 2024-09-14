@@ -20,7 +20,6 @@ pub fn handle_input(
             match byte {
                 general_ascii_chars::ENTER => {
                     // TODO: Submit the command to the master
-                    handler.enable_line_buffering()?;
                     println!(
                         "\n{}",
                         String::from_utf8(buffer.active.clone()).unwrap()
@@ -76,7 +75,7 @@ pub fn handle_input(
             }
         }
         KeypressAction::Signal(signal) => {
-            buffer.flush_buffer();
+            // TODO: handle general shell signals that can be recieved from input
         }
         KeypressAction::Action(action) => {
             match action {
@@ -109,7 +108,7 @@ pub fn handle_input(
                     );
                 }
                 triplet_char_actions::Chars::Down => {
-                    println!();
+                    // TODO: handle forward movement in history
                 }
                 triplet_char_actions::Chars::Left => {
                     buffer.move_backward_caret();

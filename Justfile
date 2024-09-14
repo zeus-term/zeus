@@ -1,4 +1,4 @@
-projects := "zeus hermes helios common"
+projects := "zeus hermes common"
 alias dz := dev-zeus
 alias dt := dev-term
 
@@ -27,6 +27,13 @@ rust_release_file_size:
   for project in {{projects}}; do
     size=$(cd $project && ls -alih target/release/$project | awk '{print $6}')
     echo "Size of $project := $size"
+  done
+
+clean:
+  #!/usr/bin/env bash
+  for project in {{projects}}; do
+    cd $project
+    cargo clean
   done
 
 
