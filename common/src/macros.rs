@@ -46,19 +46,19 @@ macro_rules! declare_all_consts {
 /// Macro check whether the result has a error if yes then it will return the error as a result
 #[macro_export]
 macro_rules! catch_error {
-    ($result: expr => $err: expr) => {
-        if $result.is_err() {
-            return Err($err);
-        }
-    };
+	($result: expr => $err: expr) => {
+		if $result.is_err() {
+			return Err($err);
+		}
+	};
 }
 
 /// Macro which converts a string literal to a byte array
 #[macro_export]
 macro_rules! str_vec {
-    ($str: expr) => {
-        $str.as_bytes()
-    };
+	($str: expr) => {
+		$str.as_bytes()
+	};
 }
 
 /// Macro to match array values all call the respective expressions on matching
