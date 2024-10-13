@@ -17,7 +17,7 @@ pub enum KeypressAction {
 }
 
 pub struct KeyMapper {
-	key_fn_map: HashMap<u32, Box<dyn Fn() -> KeypressAction>>,
+	key_fn_map: HashMap<u32, Box<dyn Fn() -> KeypressAction + Send>>,
 }
 
 #[derive(Debug, Clone)]
@@ -67,7 +67,7 @@ impl KeyMapper {
 	pub fn register_binding(
 		&mut self,
 		keys: &[u8],
-		callback: Box<dyn Fn() -> KeypressAction>,
+		callback: Box<dyn Fn() -> KeypressAction + Send>,
 	) -> Result<(), BindingPresentError> {
 		let key = hash(keys);
 
@@ -83,7 +83,7 @@ impl KeyMapper {
 	pub fn key_fn(
 		&self,
 		keys: &[u8],
-	) -> Result<&Box<dyn Fn() -> KeypressAction>, BindingNotPresentError> {
+	) -> Result<&Box<dyn Fn() -> KeypressAction + Send>, BindingNotPresentError> {
 		let key = hash(keys);
 
 		if self.key_fn_map.get(&key).is_none() {

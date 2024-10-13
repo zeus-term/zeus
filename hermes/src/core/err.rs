@@ -1,6 +1,6 @@
 use std::fmt;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct InitializationError;
 
 impl fmt::Display for InitializationError {

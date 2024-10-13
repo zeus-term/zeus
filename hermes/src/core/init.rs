@@ -12,41 +12,13 @@ use common::{
 		ctrl_chars, general_ascii_chars, printable_ascii_characters, triplet_char_actions,
 	},
 };
-use std::{
-	mem::MaybeUninit,
-	rc::Rc,
-	sync::{Arc, Mutex, Once},
-};
+use std::sync::{Arc, Mutex};
 
 type MutArc<T> = Arc<Mutex<T>>;
 
-pub fn get_term_state() -> (
-	&'static MutArc<IOHandler>,
-	&'static MutArc<Buffer>,
-	&'static Rc<KeyMapper>,
-) {
-	static mut HANDLER_STATE: MaybeUninit<MutArc<IOHandler>> = MaybeUninit::uninit();
-	static mut BUFFER_STATE: MaybeUninit<MutArc<Buffer>> = MaybeUninit::uninit();
-	static mut KEY_MAPPER_STATE: MaybeUninit<Rc<KeyMapper>> = MaybeUninit::uninit();
-	static INIT_ONCE: Once = Once::new();
-
-	unsafe {
-		INIT_ONCE.call_once(|| {
-			if let Ok(key_mapper) = init_keymapper() {
-				KEY_MAPPER_STATE.write(Rc::new(key_mapper));
-			} else {
-				panic!();
-			}
-			HANDLER_STATE.write(Arc::new(Mutex::new(IOHandler::new())));
-			BUFFER_STATE.write(Arc::new(Mutex::new(Buffer::new())));
-		});
-
-		(
-			HANDLER_STATE.assume_init_ref(),
-			BUFFER_STATE.assume_init_ref(),
-			KEY_MAPPER_STATE.assume_init_ref(),
-		)
-	}
+pub fn get_term_state() -> (IOHandler, Buffer, KeyMapper) {
+	let key_mapper = init_keymapper();
+	return (IOHandler::new(), Buffer::new(), key_mapper.unwrap());
 }
 
 fn add_multi_char_action(

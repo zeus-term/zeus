@@ -12,7 +12,8 @@ pub async fn serve_request(socket: UnixStream) -> (Receiver<PtyMaster>, Receiver
 	// TODO: handle err
 	let _ = tokio::task::spawn(async move {
 		init_handle_conn(socket, send, send_stream).await;
-	}).await;
+	})
+	.await;
 
 	(recv_pty, recv_stream)
 }

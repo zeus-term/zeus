@@ -15,5 +15,3 @@ enum_with_value!(ProtocolKeyword, usize, KeywordType, {
 	StartMsg => 200 => KeywordType::Placeholder, // Placeholder
 	EndMsg => 201 => KeywordType::Placeholder, // Placeholer
 });
-
-

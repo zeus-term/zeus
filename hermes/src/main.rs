@@ -2,34 +2,21 @@ pub mod core;
 pub mod platform;
 pub mod utils;
 
-use core::init::get_term_state;
-use std::io::{self, Write};
-use utils::buffer::handle_input;
+use core::main_loop::start_main_loop;
+use core::socket::{connect_master, start_socket_forwarding};
+use std::io::{self};
+
+use tokio::sync::mpsc;
+use tokio::task;
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
-	let (mutex_handler, mutex_buffer, key_mapper) = get_term_state();
+	let (send, recv) = mpsc::channel::<Vec<u8>>(1);
+	let stream = connect_master();
+	let io_task = task::spawn(async move { start_main_loop(send).await });
+	start_socket_forwarding(stream, recv).await;
 
-	if let (Ok(mut handler), Ok(mut buffer)) = (mutex_handler.lock(), mutex_buffer.lock()) {
-		handler.disable_line_buffering()?;
-		while let Ok(data) = handler.read() {
-			let mut keys: Vec<u8> = Vec::new();
-
-			if !buffer.in_buf.is_empty() {
-				keys.extend_from_slice(&buffer.in_buf);
-			}
-
-			keys.push(data);
-
-			if let Ok(callback) = key_mapper.key_fn(&keys) {
-				let _ = handle_input(callback(), &mut buffer, &mut handler);
-			} else {
-				buffer.flush_buffer();
-			}
-			io::stdout().flush()?;
-		}
-	} else {
-		panic!("IO is blocked cannot start hermes ;(");
-	}
+	// TODO: handle error
+	let _ = io_task.await;
 	Ok(())
 }
