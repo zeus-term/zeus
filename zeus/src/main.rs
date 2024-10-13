@@ -25,7 +25,7 @@ async fn main() -> io::Result<()> {
 	let mut children: Vec<Pid> = Vec::new();
 
 	loop {
-		info!("Started to listen on sock");
+		info!("Listening for a connection to get accepted");
 		match listener.accept() {
 			Ok((socket, addr)) => {
 				info!("New connection from {:?}", addr);

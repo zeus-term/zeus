@@ -2,45 +2,45 @@
 /// additional constant which contains all the constants in a list
 #[macro_export]
 macro_rules! declare_all_consts {
-    ($module_name: ident, $list_name: ident, $const_type: ty ,{ $($const_name: ident, $camel_case: ident : $const_value: expr), *$(,) ? } ) => {
-        pub mod $module_name {
-            $(
-                pub const $const_name: $const_type = $const_value;
-            )*
+		($module_name: ident, $list_name: ident, $const_type: ty ,{ $($const_name: ident, $camel_case: ident : $const_value: expr), *$(,) ? } ) => {
+			pub mod $module_name {
+				$(
+					pub const $const_name: $const_type = $const_value;
+				)*
 
-            pub const $list_name: &[$const_type] = &[
-                $($const_name),*
-            ];
+				pub const $list_name: &[$const_type] = &[
+					$($const_name),*
+				];
 
-            #[derive(Clone, Copy, Debug)]
-            pub enum Chars {
-                $(
-                    $camel_case,
-                )*
-            }
-        }
-    };
+				#[derive(Clone, Copy, Debug)]
+				pub enum Chars {
+					$(
+						$camel_case,
+					)*
+				}
+			}
+		};
 
-    ($module_name: ident, $list_name: ident, $const_prefix: ident : $camel_case: ident, $const_type: ty, { $($const_name: ident: $const_value: expr), *$(,) ?  } ) => {
-        paste::paste! {
-            pub mod $module_name {
-                $(
-                    pub const [<$const_prefix _ $const_name>]: $const_type = $const_value;
-                )*
+		($module_name: ident, $list_name: ident, $const_prefix: ident : $camel_case: ident, $const_type: ty, { $($const_name: ident: $const_value: expr), *$(,) ?  } ) => {
+			paste::paste! {
+				pub mod $module_name {
+				$(
+					pub const [<$const_prefix _ $const_name>]: $const_type = $const_value;
+				)*
 
-                pub const $list_name: &[$const_type] = &[
-                    $([<$const_prefix _ $const_name>]),*
-                ];
+				pub const $list_name: &[$const_type] = &[
+					$([<$const_prefix _ $const_name>]),*
+				];
 
-                #[derive(Clone, Copy, Debug)]
-                pub enum Chars {
-                    $(
-                        [<$camel_case $const_name> ],
-                    )*
-                }
-            }
-        }
-    };
+				#[derive(Clone, Copy, Debug)]
+				pub enum Chars {
+					$(
+						[<$camel_case $const_name> ],
+					)*
+				}
+			}
+		}
+	};
 }
 
 /// Macro check whether the result has a error if yes then it will return the error as a result
@@ -64,18 +64,53 @@ macro_rules! str_vec {
 /// Macro to match array values all call the respective expressions on matching
 #[macro_export]
 macro_rules! match_arr {
-    ($arr: expr, { $($const_value: expr => $callback: expr), *$(,) ? }) => {
-        $(
-            if $arr.iter().zip($const_value.iter()).all(|(a, b)| a == b) {
-                $callback
-            }
-        )*
-    };
+	($arr: expr, { $($const_value: expr => $callback: expr), *$(,) ? }) => {
+			$(
+				if $arr.iter().zip($const_value.iter()).all(|(a, b)| a == b) {
+					$callback
+				}
+			)*
+	};
 }
 
 #[macro_export]
 macro_rules! borrowed_fd {
 	($fd: expr) => {
 		unsafe { BorrowedFd::borrow_raw($fd) }
+	};
+}
+
+/// This defines a enum of given name and prepares defines the method to convert to that enum of
+/// the given type
+#[macro_export]
+macro_rules! enum_with_value {
+	($enum_name: ident, $ty: ty, $ext_type: ty, { $($key: ident => $value: expr => $ext: expr), *$(,)? }) => {
+		#[derive(PartialEq)]
+		pub enum $enum_name {
+			$(
+				$key = $value,
+			)*
+		}
+
+		impl From<$ty> for $enum_name {
+			fn from(value: $ty) -> Self {
+				match value {
+					$(
+						$value => $enum_name::$key,
+					)*
+					_ => $enum_name::Unknown,
+				}
+			}
+		}
+
+		impl $enum_name {
+			pub fn ext_type(self) -> $ext_type {
+				match self {
+					$(
+						$enum_name::$key => $ext,
+					)*
+				}
+			}
+		}
 	};
 }
