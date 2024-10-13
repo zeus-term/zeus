@@ -5,7 +5,7 @@ use common::{
 	},
 	match_arr,
 };
-use log::info;
+use log::{error, info};
 use nix::{
 	fcntl::OFlag,
 	pty::{grantpt, posix_openpt, ptsname_r, unlockpt, PtyMaster},
@@ -15,7 +15,7 @@ use std::{
 	io::{Read, Write},
 	os::unix::net::UnixStream,
 };
-use tokio::sync::mpsc;
+use tokio::sync::oneshot;
 
 #[derive(Debug, Clone)]
 pub struct PtyCreationError {}
@@ -26,7 +26,7 @@ impl Display for PtyCreationError {
 	}
 }
 
-/// This creates the psuedo-terminal and returns the
+/// This creates the psuedo-terminal and returns the PtyMaster object and slave path
 fn create_pty() -> Result<(PtyMaster, String), PtyCreationError> {
 	info!("Creating new pty");
 	match posix_openpt(OFlag::O_RDWR) {
@@ -46,7 +46,11 @@ fn create_pty() -> Result<(PtyMaster, String), PtyCreationError> {
 	}
 }
 
-pub async fn handle_conn(mut socket: UnixStream, tx: mpsc::Sender<PtyMaster>) {
+pub async fn init_handle_conn(
+	mut socket: UnixStream,
+	tx_pty: oneshot::Sender<PtyMaster>,
+	tx_stream: oneshot::Sender<UnixStream>,
+) {
 	let mut byte_buffer = vec![0u8; 1];
 	let mut message_buffer: Vec<u8> = Vec::new();
 	let mut should_escape: bool = false;
@@ -70,18 +74,16 @@ pub async fn handle_conn(mut socket: UnixStream, tx: mpsc::Sender<PtyMaster>) {
 		if byte_buffer[0] == NEWLINE {
 			match_arr!(message_buffer, {
 				CREATE_PTY => {
-					let mut pty_vec: Vec<PtyMaster> = Vec::new();
 					if let Ok((master, ptyname)) = create_pty() {
-						pty_vec.push(master);
-						socket.write_all(ptyname.as_bytes()).unwrap();
-					}
-					if let Ok((master, ptyname)) = create_pty() {
-						pty_vec.push(master);
+						if let Err(err) = tx_pty.send(master) {
+							error!("Error sending stream: {:#?}", err);
+						}
+
 						socket.write_all(ptyname.as_bytes()).unwrap();
 					}
 
-					for pty in pty_vec {
-						tx.send(pty).await.unwrap();
+					if let Err(err) = tx_stream.send(socket) {
+						error!("Error sending stream: {:#?}", err);
 					}
 				},
 			});

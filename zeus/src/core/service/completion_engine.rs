@@ -1,3 +1,5 @@
 use nix::pty::PtyMaster;
 
-fn start_handler(pty: PtyMaster) {}
+pub fn start_handler(pty: PtyMaster) {
+	loop {}
+}

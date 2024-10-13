@@ -1,19 +1,16 @@
 pub mod core;
 
-use crate::core::service::conn_handler::handle_conn;
 use common::constants::socket::HERMES_COMM;
+use core::service::request_handler::serve_request;
+use core::service::shell::fork_shell;
+use core::utils::socket::cleanup_socket;
 use log::{error, info};
-use nix::{
-	pty::PtyMaster,
-	sys::wait::waitpid,
-	unistd::{fork, Pid},
-};
+use nix::unistd::{fork, ForkResult, Pid};
 use simple_logger::SimpleLogger;
 use std::{
 	io::{self},
 	os::unix::net::UnixListener,
 };
-use tokio::sync::mpsc;
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
@@ -21,12 +18,9 @@ async fn main() -> io::Result<()> {
 
 	info!("Bootstrap process started");
 
-	let _ = std::fs::remove_file(HERMES_COMM);
-	info!("Cleaning up unix sockets");
+	cleanup_socket(HERMES_COMM);
 
 	let listener = UnixListener::bind(HERMES_COMM)?;
-	let mut completion_engine_ptymaster: Option<PtyMaster> = None;
-	let mut shell_pty_master: Option<PtyMaster> = None;
 
 	let mut children: Vec<Pid> = Vec::new();
 
@@ -36,21 +30,17 @@ async fn main() -> io::Result<()> {
 			Ok((socket, addr)) => {
 				info!("New connection from {:?}", addr);
 
-				let (send, mut recv) = mpsc::channel::<PtyMaster>(2);
+				let (recv_pty, recv_stream) = serve_request(socket).await;
 
-				tokio::task::spawn(async move {
-					handle_conn(socket, send).await;
-				});
-
-				let mut pty_buffer: Vec<PtyMaster> = Vec::new();
-				recv.recv_many(&mut pty_buffer, 2).await;
 				match unsafe { fork() } {
-					Ok(nix::unistd::ForkResult::Parent { child, .. }) => {
+					Ok(ForkResult::Parent { child, .. }) => {
 						children.push(child);
 					}
-					Ok(nix::unistd::ForkResult::Child) => {
-						completion_engine_ptymaster = Some(pty_buffer.remove(0));
-						shell_pty_master = Some(pty_buffer.remove(0));
+					Ok(ForkResult::Child) => {
+						info!("Forking shell...");
+						let pty = recv_pty.await.unwrap();
+						let stream = recv_stream.await.unwrap();
+						fork_shell(pty, stream).await;
 						break;
 					}
 					Err(err) => {
@@ -61,16 +51,6 @@ async fn main() -> io::Result<()> {
 			Err(err) => {
 				error!("Failed to accept connection: {}", err);
 			}
-		}
-	}
-
-	if let (Some(engine_pty_master), Some(shell_pty_master)) =
-		(completion_engine_ptymaster, shell_pty_master)
-	{
-	} else {
-		info!("Waiting all the children...");
-		for child in children.iter() {
-			waitpid(*child, None).unwrap();
 		}
 	}
 

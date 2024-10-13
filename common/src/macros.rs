@@ -72,3 +72,10 @@ macro_rules! match_arr {
         )*
     };
 }
+
+#[macro_export]
+macro_rules! borrowed_fd {
+	($fd: expr) => {
+		unsafe { BorrowedFd::borrow_raw($fd) }
+	};
+}

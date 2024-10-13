@@ -2,16 +2,16 @@ use std::ffi::CStr;
 
 use common::constants::unix_paths::ETC_PASSWD;
 use nix::libc::getpwuid;
-use nix::unistd::read;
+use nix::unistd::{close, read};
 use nix::{
 	fcntl::{open, OFlag},
 	sys::stat::Mode,
 };
 
-pub fn get_users_shell(user_id: Option<u32>) -> Result<String, std::io::Error> {
+pub fn get_user_shell(user_id: Option<u32>) -> String {
 	let uid = user_id.unwrap_or(0);
 
-	let fd = open(ETC_PASSWD, OFlag::O_RDONLY, Mode::S_IROTH)?;
+	let fd = open(ETC_PASSWD, OFlag::O_RDONLY, Mode::S_IROTH).unwrap();
 	let mut bytes: Vec<u8> = Vec::new();
 
 	let mut buffer: [u8; 1024] = [0; 1024];
@@ -31,5 +31,7 @@ pub fn get_users_shell(user_id: Option<u32>) -> Result<String, std::io::Error> {
 			.to_owned()
 	};
 
-	Ok(shell_path)
+	close(fd).unwrap();
+
+	shell_path
 }
