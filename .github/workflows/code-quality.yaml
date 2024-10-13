@@ -56,7 +56,7 @@ jobs:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
       - run: just clippy-check-sonar
       - name: Setup sonarqube
-        uses: warchant/setup-sonar-scanner@v3
+        uses: warchant/setup-sonar-scanner@v7
       - name: Run cargo-tarpaulin
         shell: bash
         run: |
