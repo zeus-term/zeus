@@ -60,4 +60,4 @@ jobs:
       - name: Run cargo-tarpaulin
         shell: bash
         run: |
-          sonar-scanner -Dcommunity.rust.lcov.reportPaths=lcov.info -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+          sonar-scanner -Dsonar.login=${{ secrets.SONAR_TOKEN }} -Dsonar.organization="srikanth-iyengar" -Dsonar.projectKey="srikanth-iyengar_zeus" -Dsonar.host.url=https://sonarcloud.io -Dsonar.login=${{ secrets.SONAR_TOKEN }}
