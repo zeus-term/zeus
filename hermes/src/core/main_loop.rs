@@ -1,11 +1,15 @@
-use std::io::{self, Write};
+use std::{
+	io::{self, Write},
+	os::fd::{AsFd, OwnedFd},
+};
+
+use nix::unistd::write;
 
 use crate::utils::buffer::handle_input;
 
 use super::init::get_term_state;
-use tokio::sync::mpsc::Sender;
 
-pub async fn start_main_loop(sender: Sender<Vec<u8>>) -> io::Result<()> {
+pub fn start_main_loop(fd: OwnedFd) -> io::Result<()> {
 	let (mut handler, mut buffer, key_mapper) = get_term_state();
 
 	handler.disable_line_buffering()?;
@@ -21,7 +25,7 @@ pub async fn start_main_loop(sender: Sender<Vec<u8>>) -> io::Result<()> {
 		if let Ok(callback) = key_mapper.key_fn(&keys) {
 			let data = handle_input(callback(), &mut buffer, &mut handler, false);
 			if let Some(data) = data {
-				sender.send(data.clone()).await.unwrap();
+				let err = write(fd.as_fd(), &data);
 			}
 		} else {
 			buffer.flush_buffer();

@@ -18,7 +18,6 @@ pub fn start_forwarder(from_fd: i32, to_fd: i32) {
 
 		// block till some data is available for read
 		let result = poll(&mut rd_fds, PollTimeout::MAX);
-		debug!("Data available for reading in: {}", from_fd);
 
 		if result.is_err() || result.unwrap() <= 0 {
 			continue;

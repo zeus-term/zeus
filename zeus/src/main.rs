@@ -12,7 +12,7 @@ use std::{
 	os::unix::net::UnixListener,
 };
 
-#[tokio::main]
+#[tokio::main(flavor = "multi_thread", worker_threads = 2)]
 async fn main() -> io::Result<()> {
 	SimpleLogger::new().env().init().unwrap();
 
