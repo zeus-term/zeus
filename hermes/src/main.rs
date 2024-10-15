@@ -2,21 +2,23 @@ pub mod core;
 pub mod platform;
 pub mod utils;
 
-use core::main_loop::start_main_loop;
-use core::socket::{connect_master, start_socket_forwarding};
-use std::io::{self};
+use ::core::panic;
+use core::{
+	main_loop::start_main_loop,
+	socket::{connect_master, start_socket_forwarding},
+};
+use std::thread;
 
-use tokio::sync::mpsc;
-use tokio::task;
+use nix::unistd::pipe;
 
-#[tokio::main]
-async fn main() -> io::Result<()> {
-	let (send, recv) = mpsc::channel::<Vec<u8>>(1);
+fn main() {
+	let pipe_fds = pipe();
+	if pipe_fds.is_err() {
+		panic!("Error occured when creating a unix pipe");
+	}
+	let (read_fd, write_fd) = pipe_fds.unwrap();
 	let stream = connect_master();
-	let io_task = task::spawn(async move { start_main_loop(send).await });
-	start_socket_forwarding(stream, recv).await;
-
-	// TODO: handle error
-	let _ = io_task.await;
-	Ok(())
+	let io_task = thread::spawn(|| start_main_loop(write_fd));
+	start_socket_forwarding(stream, read_fd);
+	let err = io_task.join();
 }
