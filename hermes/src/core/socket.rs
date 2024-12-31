@@ -42,7 +42,7 @@ pub fn start_socket_forwarding(socket: UnixStream, read_fd: OwnedFd) {
 
 	let (in_task, out_task) = (
 		thread::spawn(move || {
-			start_socket_write_forwarding(socket_fd_in, read_fd);
+			start_forwarder(socket_fd_in, read_fd.as_raw_fd());
 		}),
 		thread::spawn(move || {
 			start_forwarder(socket_fd_out, STDOUT_FILENO);
@@ -50,16 +50,4 @@ pub fn start_socket_forwarding(socket: UnixStream, read_fd: OwnedFd) {
 	);
 	let _ = in_task.join();
 	let _ = out_task.join();
-}
-
-fn start_socket_write_forwarding(socket_fd: i32, read_fd: OwnedFd) {
-	let mut buf: [u8; 1] = [0; 1];
-	loop {
-		let read_bytes = read(read_fd.as_raw_fd(), &mut buf);
-		if let Ok(read_cnt) = read_bytes {
-			if read_cnt > 0 {
-				let _ = write(borrowed_fd!(socket_fd), &buf[0..read_cnt]);
-			}
-		}
-	}
 }

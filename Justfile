@@ -15,7 +15,7 @@ dev-term:
   ./hermes/target/debug/hermes
 
 fmt:
-  #!/usr/bin/env bash
+  #!/bin/bash
   for project in {{projects}}; do
     cd $project
     cargo fmt
@@ -23,14 +23,14 @@ fmt:
   done
 
 rust_release_file_size:
-  #!/usr/bin/env bash
+  #!/bin/bash
   for project in {{projects}}; do
     size=$(cd $project && ls -alih target/release/$project | awk '{print $6}')
     echo "Size of $project := $size"
   done
 
 clean:
-  #!/usr/bin/env bash
+  #!/bin/bash
   for project in {{projects}}; do
     cd $project
     cargo clean

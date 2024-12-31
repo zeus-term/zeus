@@ -83,27 +83,40 @@ fn init_keymapper() -> Result<KeyMapper, InitializationError> {
 		);
 	}
 
+	for character in ctrl_chars::CTRL_ALL_CHARS.iter() {
+		if *character == general_ascii_chars::ESC
+			|| *character == general_ascii_chars::EOF
+			|| *character == general_ascii_chars::NEWLINE
+		{
+			continue;
+		}
+		key_mapper.register_binding(
+				&[*character],
+				Box::new(move || KeypressAction::Return(*character))
+			);
+	}
+
 	// Essential linux shell signals mapping
-	catch_error!(
-		key_mapper.register_binding(
-			&[ctrl_chars::CTRL_C],
-			Box::new(move || KeypressAction::Signal(SIGNAL::SIGINT)),
-		) => InitializationError{}
-	);
+	// catch_error!(
+	// 	key_mapper.register_binding(
+	// 		&[ctrl_chars::CTRL_C],
+	// 		Box::new(move || KeypressAction::Signal(SIGNAL::SIGINT)),
+	// 	) => InitializationError{}
+	// );
 
-	catch_error!(
-		key_mapper.register_binding(
-			&[ctrl_chars::CTRL_Z],
-			Box::new(move || KeypressAction::Signal(SIGNAL::SIGSTOP)),
-		) => InitializationError{}
-	);
+	// catch_error!(
+	// 	key_mapper.register_binding(
+	// 		&[ctrl_chars::CTRL_Z],
+	// 		Box::new(move || KeypressAction::Signal(SIGNAL::SIGSTOP)),
+	// 	) => InitializationError{}
+	// );
 
-	catch_error!(
-		key_mapper.register_binding(
-		&[ctrl_chars::CTRL_D],
-		Box::new(move || KeypressAction::Signal(SIGNAL::SIGQUIT)),
-		) => InitializationError{}
-	);
+	// catch_error!(
+	// 	key_mapper.register_binding(
+	// 	&[ctrl_chars::CTRL_D],
+	// 	Box::new(move || KeypressAction::Signal(SIGNAL::SIGQUIT)),
+	// 	) => InitializationError{}
+	// );
 
 	// multi-char actions
 	catch_error!(

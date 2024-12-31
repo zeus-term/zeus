@@ -3,7 +3,7 @@ use std::{
 	os::fd::{AsFd, AsRawFd, BorrowedFd},
 };
 
-use common::borrowed_fd;
+use common::{borrowed_fd, constants::STDIN_FILENO, forwarder::start_forwarder};
 use nix::unistd::{dup, read, write};
 use std::thread;
 
@@ -15,14 +15,7 @@ pub fn start_main_loop(fd: BorrowedFd) -> io::Result<()> {
 	let (mut handler, mut buffer, key_mapper) = get_term_state();
 	let sync_fd = dup(fd.as_raw_fd());
 	let join_handle = thread::spawn(move || {
-		let mut read_buf: [u8; 10] = [0; 10];
-		loop {
-			if let Ok(read_bytes) = read(sync_fd.unwrap(), &mut read_buf) {
-				if read_bytes > 0 {
-					let _ = write(borrowed_fd!(0), &read_buf);
-				}
-			}
-		}
+		start_forwarder(sync_fd.unwrap(), STDIN_FILENO);
 	});
 
 	handler.disable_line_buffering()?;
