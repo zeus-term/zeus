@@ -1,7 +1,6 @@
 use std::{
 	ffi::{CStr, CString},
 	os::{fd::AsRawFd, unix::net::UnixStream},
-	str::FromStr,
 };
 
 use common::{

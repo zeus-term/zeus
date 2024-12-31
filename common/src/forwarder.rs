@@ -11,6 +11,8 @@ pub fn start_forwarder(from_fd: i32, to_fd: i32) {
 		"Request to start forward from : {}, to : {}",
 		from_fd, to_fd
 	);
+	let mut buf: [u8; 512] = [0; 512];
+
 	loop {
 		let in_fd = PollFd::new(borrowed_fd!(from_fd), PollFlags::POLLIN);
 
@@ -23,11 +25,9 @@ pub fn start_forwarder(from_fd: i32, to_fd: i32) {
 			continue;
 		}
 
-		let mut buf: [u8; 512] = [0; 512];
-
-		let bytes_read = read(from_fd, &mut buf);
-		if bytes_read.unwrap_or(0) > 0 {
-			let _ = write(borrowed_fd!(to_fd).as_fd(), &buf);
+		let bytes_read = read(from_fd, &mut buf).unwrap_or(0);
+		if bytes_read > 0 {
+			let _ = write(borrowed_fd!(to_fd).as_fd(), &buf[0..bytes_read]);
 		}
 	}
 }
