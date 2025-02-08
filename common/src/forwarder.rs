@@ -22,6 +22,7 @@ pub fn start_forwarder(from_fd: i32, to_fd: i32) {
 		let result = poll(&mut rd_fds, PollTimeout::MAX);
 
 		if result.is_err() || result.unwrap() <= 0 {
+			debug!("Error");
 			continue;
 		}
 

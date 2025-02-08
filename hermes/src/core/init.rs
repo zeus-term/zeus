@@ -1,5 +1,3 @@
-use crate::platform::unix_signals::SIGNAL;
-
 use super::{
 	buffer::Buffer,
 	err::InitializationError,
@@ -12,13 +10,10 @@ use common::{
 		ctrl_chars, general_ascii_chars, printable_ascii_characters, triplet_char_actions,
 	},
 };
-use std::sync::{Arc, Mutex};
-
-type MutArc<T> = Arc<Mutex<T>>;
 
 pub fn get_term_state() -> (IOHandler, Buffer, KeyMapper) {
 	let key_mapper = init_keymapper();
-	return (IOHandler::new(), Buffer::new(), key_mapper.unwrap());
+	(IOHandler::new(), Buffer::new(), key_mapper.unwrap())
 }
 
 fn add_multi_char_action(
@@ -90,7 +85,7 @@ fn init_keymapper() -> Result<KeyMapper, InitializationError> {
 		{
 			continue;
 		}
-		key_mapper.register_binding(
+		let _ = key_mapper.register_binding(
 				&[*character],
 				Box::new(move || KeypressAction::Return(*character))
 			);

@@ -3,8 +3,8 @@ use std::{
 	os::fd::{AsFd, AsRawFd, BorrowedFd},
 };
 
-use common::{borrowed_fd, constants::STDIN_FILENO, forwarder::start_forwarder};
-use nix::unistd::{dup, read, write};
+use common::{constants::STDIN_FILENO, forwarder::start_forwarder};
+use nix::unistd::{dup, write};
 use std::thread;
 
 use crate::utils::buffer::handle_input;

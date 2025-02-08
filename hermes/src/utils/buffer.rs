@@ -1,7 +1,6 @@
 use super::term;
 use super::term::{DataWriteOrder, DisplaceDirection, PostCaretPosition};
 use crate::core::{buffer::Buffer, io::IOHandler, key_mapper::KeypressAction};
-use common::constants::character::general_ascii_chars::NEWLINE;
 use common::constants::character::{
 	general_ascii_chars, printable_ascii_characters::SPACE, triplet_char_actions,
 };
@@ -21,7 +20,6 @@ pub fn handle_input(
 					// TODO: Properly handle errors
 					let _ = buffer.push_active_command();
 					handler.disable_line_buffering().unwrap();
-					let _ = handler.write_str(&[NEWLINE]);
 				}
 				general_ascii_chars::TAB => {
 					// TODO: Send the master to show auto completion
@@ -74,7 +72,7 @@ pub fn handle_input(
 				buffer.flush_buffer();
 			}
 		}
-		KeypressAction::Signal(signal) => {
+		KeypressAction::Signal(_) => {
 			// TODO: handle general shell signals that can be recieved from input
 		}
 		KeypressAction::Action(action) => {
@@ -144,7 +142,7 @@ pub fn handle_input(
 			}
 			buffer.flush_buffer();
 		}
-		KeypressAction::MasterCommand(cmd) => {}
+		KeypressAction::MasterCommand(_) => {}
 	}
 	None
 }

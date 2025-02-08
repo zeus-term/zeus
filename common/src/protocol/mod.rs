@@ -1,1 +1,2 @@
-pub mod commands;
+pub mod zeus;
+pub mod hermes;
