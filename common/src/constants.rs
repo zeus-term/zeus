@@ -1,6 +1,5 @@
 pub mod socket {
-	pub const HELIOS_COMM: &str = "/tmp/zeus-helios.sock";
-	pub const HERMES_COMM: &str = "/tmp/zeus-hermes.sock";
+	pub const CLIENT_COMM: &str = "/tmp/zeus-client.sock";
 }
 
 pub mod msg_directives {

@@ -1,7 +1,7 @@
 pub mod core;
 
-use common::constants::socket::HERMES_COMM;
-use core::service::request_handler::serve_request;
+use common::constants::socket::CLIENT_COMM;
+use core::service::request_handler::init_serve_request;
 use core::service::shell::fork_shell;
 use core::utils::socket::cleanup_socket;
 use log::{error, info};
@@ -12,15 +12,15 @@ use std::{
 	os::unix::net::UnixListener,
 };
 
-#[tokio::main(flavor = "multi_thread", worker_threads = 2)]
+#[tokio::main(flavor = "multi_thread")]
 async fn main() -> io::Result<()> {
 	SimpleLogger::new().env().init().unwrap();
 
 	info!("Bootstrap process started");
 
-	cleanup_socket(HERMES_COMM);
+	cleanup_socket(CLIENT_COMM);
 
-	let listener = UnixListener::bind(HERMES_COMM)?;
+	let listener = UnixListener::bind(CLIENT_COMM)?;
 
 	let mut children: Vec<Pid> = Vec::new();
 
@@ -30,7 +30,7 @@ async fn main() -> io::Result<()> {
 			Ok((socket, addr)) => {
 				info!("New connection from {:?}", addr);
 
-				let (recv_pty, recv_stream) = serve_request(socket).await;
+				let (recv_pty, recv_stream) = init_serve_request(socket).await;
 
 				match unsafe { fork() } {
 					Ok(ForkResult::Parent { child, .. }) => {

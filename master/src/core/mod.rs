@@ -3,6 +3,7 @@ pub mod service {
 	pub mod conn_handler;
 	pub mod request_handler;
 	pub mod shell;
+	pub mod v2;
 }
 
 pub mod utils {

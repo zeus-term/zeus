@@ -86,9 +86,9 @@ fn init_keymapper() -> Result<KeyMapper, InitializationError> {
 			continue;
 		}
 		let _ = key_mapper.register_binding(
-				&[*character],
-				Box::new(move || KeypressAction::Return(*character))
-			);
+			&[*character],
+			Box::new(move || KeypressAction::Return(*character)),
+		);
 	}
 
 	// Essential linux shell signals mapping

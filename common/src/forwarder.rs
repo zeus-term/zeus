@@ -1,10 +1,15 @@
 use std::os::fd::{AsFd, BorrowedFd};
 
-use log::debug;
+use log::{debug, error};
 use nix::poll::{poll, PollFd, PollFlags, PollTimeout};
 use nix::unistd::{read, write};
 
 use crate::borrowed_fd;
+
+pub struct FdForward {
+	pub from: i32,
+	pub to: i32,
+}
 
 pub fn start_forwarder(from_fd: i32, to_fd: i32) {
 	debug!(
@@ -22,8 +27,8 @@ pub fn start_forwarder(from_fd: i32, to_fd: i32) {
 		let result = poll(&mut rd_fds, PollTimeout::MAX);
 
 		if result.is_err() || result.unwrap() <= 0 {
-			debug!("Error");
-			continue;
+			error!("Error forwarding data: {:?}", result.err());
+			return;
 		}
 
 		let bytes_read = read(from_fd, &mut buf).unwrap_or(0);

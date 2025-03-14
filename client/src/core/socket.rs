@@ -1,24 +1,23 @@
 use std::{
 	io::{Read, Write},
 	os::{
-		fd::{AsRawFd, BorrowedFd, OwnedFd},
+		fd::{AsRawFd, OwnedFd},
 		unix::net::UnixStream,
 	},
 };
 
 use common::{
-	borrowed_fd,
 	constants::{
-		character::general_ascii_chars::NEWLINE, msg_directives::CREATE_PTY, socket::HERMES_COMM,
+		character::general_ascii_chars::NEWLINE, msg_directives::CREATE_PTY, socket::CLIENT_COMM,
 		STDOUT_FILENO,
 	},
 	forwarder::start_forwarder,
 };
-use nix::unistd::{dup, read, write};
+use nix::unistd::dup;
 use std::thread;
 
 pub fn connect_master() -> UnixStream {
-	let mut stream = UnixStream::connect(HERMES_COMM).unwrap();
+	let mut stream = UnixStream::connect(CLIENT_COMM).unwrap();
 
 	// request to create a new shell
 	stream.write_all(CREATE_PTY).unwrap();

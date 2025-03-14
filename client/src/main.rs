@@ -14,7 +14,5 @@ fn main() {
 		panic!("Error occured when creating a unix pipe");
 	}
 	let stream = connect_master();
-	if let Ok(res) = start_main_loop(stream.as_fd()) {
-		// terminated successfully
-	}
+	if let Ok(res) = start_main_loop(stream.as_fd()) {}
 }

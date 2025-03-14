@@ -5,7 +5,7 @@ use tokio::sync::oneshot::{channel, Receiver};
 
 use super::conn_handler::init_handle_conn;
 
-pub async fn serve_request(socket: UnixStream) -> (Receiver<PtyMaster>, Receiver<UnixStream>) {
+pub async fn init_serve_request(socket: UnixStream) -> (Receiver<PtyMaster>, Receiver<UnixStream>) {
 	let (send, recv_pty) = channel::<PtyMaster>();
 	let (send_stream, recv_stream) = channel::<UnixStream>();
 

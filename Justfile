@@ -1,4 +1,4 @@
-projects := "zeus hermes common"
+projects := "client master common"
 alias dz := dev-zeus
 alias dt := dev-term
 
@@ -6,13 +6,13 @@ default:
   just --list
 
 dev-zeus:
-  @cd zeus && cargo run
+  @cd master && cargo master
 
 dev-term:
-  @cd hermes && cargo build && printf "\n"
+  @cd client && cargo build && printf "\n"
   echo "Build successful hermes"
   echo ""
-  ./hermes/target/debug/hermes
+  ./client/target/debug/client
 
 fmt:
   #!/bin/bash
@@ -39,10 +39,10 @@ clean:
 
 _build_projects:
   @echo "Building Hermes..."
-  @cd hermes && cargo build --release
+  @cd client && cargo build --release
   @echo "Hermes Built Successfully"
   @echo "Building Zeus..."
-  @cd zeus && cargo build --release
+  @cd master && cargo build --release
   @echo "Zeus Built Successfully..."
 
 # To build all the components of zeus
