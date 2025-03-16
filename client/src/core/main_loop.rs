@@ -1,9 +1,11 @@
+use core::panic;
 use std::{
 	io::{self, Write},
-	os::fd::{AsFd, AsRawFd, BorrowedFd},
+	os::{fd::{AsFd, AsRawFd}, unix::net::UnixStream},
 };
 
-use common::{constants::STDIN_FILENO, forwarder::start_forwarder};
+use common::{constants::STDIN_FILENO, forwarder::start_forwarder, protocol::{master::Message, utils::raw_message}};
+use inotify::Inotify;
 use nix::unistd::{dup, write};
 use std::thread;
 
@@ -11,8 +13,23 @@ use crate::utils::buffer::handle_input;
 
 use super::init::get_term_state;
 
-pub fn start_main_loop(fd: BorrowedFd) -> io::Result<()> {
+fn init(stream: &mut UnixStream) {
+	let msg = Message::Init;
+	stream.write(raw_message(msg).unwrap().as_slice());
+}
+
+pub fn start_main_loop(sock: UnixStream) -> io::Result<()> {
+	let mut stream = sock;
+	init(&mut stream);
+	let fd = stream.as_fd();
+	let mut inotity = match Inotify::init() {
+		Ok(inotify) => inotify,
+		Err(_) => {
+			panic!("Error intiializing inotify");
+		}
+	};
 	let (mut handler, mut buffer, key_mapper) = get_term_state();
+
 	let sync_fd = dup(fd.as_raw_fd());
 	let join_handle = thread::spawn(move || {
 		start_forwarder(sync_fd.unwrap(), STDIN_FILENO);
@@ -41,3 +58,5 @@ pub fn start_main_loop(fd: BorrowedFd) -> io::Result<()> {
 	let _ = join_handle.join();
 	Ok(())
 }
+
+

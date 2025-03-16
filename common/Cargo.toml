@@ -5,6 +5,11 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+default=["master"]
+master=[]
+client=[]
+
 [dependencies]
 log = "0.4.22"
 nix = { version = "0.29.0", features = ["fs", "poll"] }

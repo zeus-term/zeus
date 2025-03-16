@@ -4,15 +4,15 @@ pub mod utils;
 
 use ::core::panic;
 use core::{main_loop::start_main_loop, socket::connect_master};
-use std::os::fd::AsFd;
 
 use nix::unistd::pipe;
 
-fn main() {
+#[tokio::main(flavor = "multi_thread")]
+async fn main() {
 	let pipe_fds = pipe();
 	if pipe_fds.is_err() {
 		panic!("Error occured when creating a unix pipe");
 	}
 	let stream = connect_master();
-	if let Ok(res) = start_main_loop(stream.as_fd()) {}
+	if let Ok(_res) = start_main_loop(stream) {}
 }

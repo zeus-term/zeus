@@ -6,13 +6,10 @@ default:
   just --list
 
 dev-zeus:
-  @cd master && cargo master
+  @cd master && cargo run
 
 dev-term:
-  @cd client && cargo build && printf "\n"
-  echo "Build successful hermes"
-  echo ""
-  ./client/target/debug/client
+  @cd client && cargo run
 
 fmt:
   #!/bin/bash

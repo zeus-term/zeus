@@ -8,14 +8,9 @@ pub enum Message {
 	Forward(u32, Vec<u8>),
 	AutoComplete(String),
 	Init,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub enum Response {
 	Ack(i32),
-	ShellPid(u32),
 	ForwardAck(u32),
-	AckPty(String),
+	AckPty(String, Option<i32>),
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -25,5 +20,5 @@ pub struct EnvVar {
 }
 
 pub trait HandleMessage {
-	fn handle(&mut self, msg: Message) -> Response;
+	fn handle(&mut self, msg: Message) -> Message;
 }
