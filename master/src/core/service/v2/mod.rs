@@ -1,5 +1,3 @@
-// #[cfg(feature="v2")]
 pub mod command;
-
-// #[cfg(feature="v2")]
+pub mod context;
 pub mod handler;

@@ -1,129 +1,59 @@
-use log::{debug, error};
-use nix::pty::PtyMaster;
-use postcard::{from_bytes, Error};
 use std::{
-	io::BufRead,
-	io::{BufReader, Write},
-	os::{
-		fd::{AsRawFd, FromRawFd},
-		linux,
-		unix::net::UnixStream,
-	},
-	sync::Arc,
+	io::{BufReader, Read, Write},
+	os::unix::net::UnixStream,
 };
-#[cfg(feature = "client")]
-use tokio::sync::oneshot::Sender;
 
-use crate::err::Error as ZError;
+use postcard::{from_bytes, to_slice};
 
-use super::{message::Message, utils::raw_message};
+use super::message::Message;
+use crate::constants::character::general_ascii_chars::EOF;
 
-#[cfg(feature = "master")]
-pub struct Context {
-	pub sock_fd: i32,
-	pub master: Option<PtyMaster>,
-}
+pub trait MessageHandler<T> {
+	fn handle(msg: Message, ctx: &T) -> Option<Message>;
 
-#[cfg(feature = "master")]
-impl Context {
-	pub fn new(sock_fd: i32) -> Context {
-		Context {
-			sock_fd,
-			master: None,
-		}
-	}
-}
+	fn get_context(&mut self) -> &T;
 
-#[cfg(feature = "client")]
-pub struct Context {
-	pub sock_fd: i32,
-	pub pid_tx: Sender<i32>,
-}
-#[cfg(feature = "client")]
-impl Context {
-	pub fn new(sock_fd: i32, pid_tx: Sender<i32>) -> Context {
-		Context { sock_fd, pid_tx }
-	}
-}
+	fn get_read_stream(&mut self) -> BufReader<UnixStream>;
 
-type Handler = fn(Message, &Context) -> Option<Message>;
+	fn get_write_stream(&mut self) -> &mut UnixStream;
 
-pub struct MessageHandler {
-	pub buf_sock_stream: BufReader<UnixStream>,
-	pub sock_fd: i32,
-	pub sock_stream: UnixStream,
-	pub handle: Handler,
-	pub ctx: Context,
-}
+	fn start_handler(&mut self) {
+		let mut reader = self.get_read_stream();
+		let mut buf = Vec::new();
 
-impl MessageHandler {
-	pub fn read_message(&mut self) -> Result<Message, ZError> {
-		let mut buf = String::new();
-		if let Ok(res) = self.buf_sock_stream.read_line(&mut buf) {
-			let msg: Result<Message, Error> = from_bytes(buf.as_bytes());
-
-			return Ok(msg.unwrap());
-		}
-
-		Err(ZError::SocketReadError)
-	}
-
-	#[cfg(feature = "master")]
-	pub fn new(sock: UnixStream, handle: Handler) -> MessageHandler {
-		let sock_fd = sock.as_raw_fd();
-		let sock_stream = unsafe { UnixStream::from_raw_fd(sock_fd) };
-
-		MessageHandler {
-			buf_sock_stream: BufReader::new(sock),
-			sock_fd,
-			sock_stream,
-			handle,
-			ctx: Context::new(sock_fd),
-		}
-	}
-
-	#[cfg(feature = "client")]
-	pub fn new(sock: UnixStream, handle: Handler, pid_tx: Sender<i32>) -> MessageHandler {
-		let sock_fd = sock.as_raw_fd();
-		let sock_stream = unsafe { UnixStream::from_raw_fd(sock_fd) };
-
-		MessageHandler {
-			buf_sock_stream: BufReader::new(sock),
-			sock_fd,
-			sock_stream,
-			handle,
-			ctx: Context::new(sock_fd, pid_tx),
-		}
-	}
-
-	pub async fn start_handler(&mut self) {
 		loop {
-			let response = match self.read_message() {
-				Ok(msg) => match (self.handle)(msg, &self.ctx) {
-					Some(res) => res,
-					None => {
-						continue;
+			// Read until EOF (stream closes)
+			match reader.read_to_end(&mut buf) {
+				Ok(_) => {
+					// Remove the EOF byte if present
+					if let Some(&last) = buf.last() {
+						if last == EOF {
+							buf.pop();
+						}
 					}
-				},
-				Err(err) => {
-					error!(
-						"Error occurred while reading the message: {}, trace: {}",
-						ZError::MessageParsingError,
-						err
-					);
-					Message::Ack(-1)
-				}
-			};
-			debug!("Message : {:?}", response);
 
-			match raw_message(response) {
-				Ok(raw_res) => {
-					self.sock_stream.write(&raw_res);
+					match from_bytes::<Message>(&buf) {
+						Ok(msg) => {
+							if let Some(response) = Self::handle(msg, self.get_context()) {
+								if let Err(e) = self.send_response(&response) {
+									eprintln!("Error sending response: {}", e);
+								}
+							}
+						}
+						Err(e) => eprintln!("Failed to deserialize message: {}", e),
+					}
 				}
-				Err(err) => {
-					error!("{}", err);
-				}
+				Err(e) => eprintln!("Failed to read from stream: {}", e),
 			}
 		}
+	}
+
+	fn send_response(&mut self, response: &Message) -> std::io::Result<()> {
+		let mut buf = [0u8; 32];
+		let encoded = to_slice(response, &mut buf)
+			.map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+
+		let raw_msg = [encoded, &mut [EOF]].concat();
+		self.get_write_stream().write_all(&raw_msg)
 	}
 }

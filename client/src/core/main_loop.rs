@@ -9,7 +9,7 @@ use std::{
 use tokio::sync::mpsc;
 use tokio::sync::mpsc::Receiver;
 
-use common::protocol::{message::Message, utils::raw_message};
+use common::protocol::{base_handler::MessageHandler, message::Message, utils::raw_message};
 use inotify::Inotify;
 
 use super::{init::get_term_state, term_state::TermState};
@@ -23,6 +23,7 @@ pub async fn start_input_handler(fd: BorrowedFd<'_>, mut state_chan: Receiver<Te
 	let (mut io_handler, mut buffer, key_mapper) = get_term_state();
 	let _ = io_handler.disable_line_buffering();
 	let mut state = state_chan.recv().await.unwrap();
+	let mut handler = MessageHandler::new(streamm, handle);
 
 	while let Ok(data) = io_handler.read() {
 		let mut keys: Vec<u8> = Vec::new();

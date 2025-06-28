@@ -1,16 +1,13 @@
 use std::os::fd::AsRawFd;
 
-use common::{
-	err::Error,
-	forwarder::FdForward,
-	protocol::{base_handler::Context, message::Message},
-};
+use common::{err::Error, forwarder::FdForward, protocol::message::Message};
 use log::info;
 use nix::{
 	fcntl::OFlag,
 	pty::{grantpt, posix_openpt, ptsname_r, unlockpt, PtyMaster},
 };
 
+use super::super::context::Context;
 use super::z_fork::fork_process;
 
 /// Message handler for INIT event

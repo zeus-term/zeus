@@ -1,7 +1,9 @@
 use std::os::fd::AsFd;
 
-use common::protocol::{base_handler::Context, message::Message};
+use common::protocol::message::Message;
 use nix::unistd::write;
+
+use super::super::context::Context;
 
 pub fn handle(size: u32, data: Vec<u8>, ctx: &Context) -> Message {
 	match &ctx.master {
