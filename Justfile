@@ -1,4 +1,5 @@
-projects := "client master common"
+projects := "master client"
+fmt_projects := "master client common"
 alias dz := dev-zeus
 alias dt := dev-term
 
@@ -6,17 +7,14 @@ default:
   just --list
 
 dev-zeus:
-  @cd master && cargo master
+  @cd master && cargo run
 
 dev-term:
-  @cd client && cargo build && printf "\n"
-  echo "Build successful hermes"
-  echo ""
-  ./client/target/debug/client
+  @cd client && cargo run
 
 fmt:
   #!/bin/bash
-  for project in {{projects}}; do
+  for project in {{fmt_projects}}; do
     cd $project
     cargo fmt
     cd ..

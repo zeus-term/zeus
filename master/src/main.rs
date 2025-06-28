@@ -1,11 +1,9 @@
 pub mod core;
 
 use common::constants::socket::CLIENT_COMM;
-use core::service::request_handler::init_serve_request;
-use core::service::shell::fork_shell;
+use core::service::v2::handler::request_handler;
 use core::utils::socket::cleanup_socket;
-use log::{error, info};
-use nix::unistd::{fork, ForkResult, Pid};
+use log::info;
 use simple_logger::SimpleLogger;
 use std::{
 	io::{self},
@@ -22,37 +20,7 @@ async fn main() -> io::Result<()> {
 
 	let listener = UnixListener::bind(CLIENT_COMM)?;
 
-	let mut children: Vec<Pid> = Vec::new();
-
-	loop {
-		info!("Listening for a connection to get accepted");
-		match listener.accept() {
-			Ok((socket, addr)) => {
-				info!("New connection from {:?}", addr);
-
-				let (recv_pty, recv_stream) = init_serve_request(socket).await;
-
-				match unsafe { fork() } {
-					Ok(ForkResult::Parent { child, .. }) => {
-						children.push(child);
-					}
-					Ok(ForkResult::Child) => {
-						info!("Forking shell...");
-						let pty = recv_pty.await.unwrap();
-						let stream = recv_stream.await.unwrap();
-						fork_shell(pty, stream).await;
-						break;
-					}
-					Err(err) => {
-						error!("Error occured when creating a fork of zeus master: {}", err);
-					}
-				}
-			}
-			Err(err) => {
-				error!("Failed to accept connection: {}", err);
-			}
-		}
-	}
+	request_handler(listener);
 
 	Ok(())
 }

@@ -3,7 +3,7 @@ use std::os::fd::AsRawFd;
 use common::{
 	err::Error,
 	forwarder::FdForward,
-	protocol::master::{Message, Response},
+	protocol::{base_handler::Context, message::Message},
 };
 use log::info;
 use nix::{
@@ -11,26 +11,28 @@ use nix::{
 	pty::{grantpt, posix_openpt, ptsname_r, unlockpt, PtyMaster},
 };
 
-use crate::core::service::v2::handler::Context;
-
 use super::z_fork::fork_process;
 
 /// Message handler for INIT event
 /// Refer https://github.com/zeus-term/zeus/
-pub fn handle(msg: Message, ctx: Context) -> Response {
+pub fn handle(_msg: Message, ctx: &Context) -> Message {
 	if let Ok((pty_master, pty_path)) = create_pty() {
-		let sock_to_pty = FdForward {
-			to: pty_master.as_raw_fd(),
-			from: ctx.sock_fd,
-		};
 		let pty_to_sock = FdForward {
 			from: ctx.sock_fd,
 			to: pty_master.as_raw_fd(),
 		};
-		let _ = fork_process(sock_to_pty, pty_to_sock);
-		return Response::AckPty(pty_path);
+
+		if let Ok(res) = fork_process(&[pty_to_sock], pty_path.as_str()) {
+			let pid = match res {
+				super::z_fork::ZForkResponse::Parent(pid) => Some(pid.as_raw()),
+				_ => None,
+			};
+			return Message::AckPty(pty_path, pid);
+		}
+
+		return Message::Ack(-1);
 	}
-	Response::Ack(-1)
+	Message::Ack(-1)
 }
 
 /// This creates the psuedo-terminal and returns the PtyMaster object and slave path

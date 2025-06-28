@@ -6,6 +6,7 @@ use nix::unistd::{read, write};
 
 use crate::borrowed_fd;
 
+#[derive(Clone, Copy)]
 pub struct FdForward {
 	pub from: i32,
 	pub to: i32,

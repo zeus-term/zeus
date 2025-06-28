@@ -1,3 +1,4 @@
+use crate::core::service::shell::start_shell_subprocess;
 use common::{
 	err::Error,
 	forwarder::{start_forwarder, FdForward},
@@ -9,18 +10,20 @@ pub enum ZForkResponse {
 	Child,
 }
 
-pub fn fork_process(forward1: FdForward, forward2: FdForward) -> Result<ZForkResponse, Error> {
+pub fn fork_process(forwarders: &[FdForward], pts_path: &str) -> Result<ZForkResponse, Error> {
 	match unsafe { fork() } {
-		Ok(ForkResult::Parent { child }) => Ok(ZForkResponse::Parent(child)),
+		Ok(ForkResult::Parent { child }) => {
+			for fwd in forwarders {
+				let FdForward { from, to } = *fwd;
+				tokio::task::spawn_blocking(move || {
+					start_forwarder(from, to);
+				});
+			}
+
+			Ok(ZForkResponse::Parent(child))
+		}
 		Ok(nix::unistd::ForkResult::Child) => {
-			tokio::task::spawn_blocking(move || {
-				start_forwarder(forward1.from, forward1.to);
-			});
-
-			tokio::task::spawn_blocking(move || {
-				start_forwarder(forward2.from, forward2.to);
-			});
-
+			start_shell_subprocess(pts_path);
 			Ok(ZForkResponse::Child)
 		}
 		Err(_) => Err(Error::ProcessForkError),

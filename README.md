@@ -8,14 +8,14 @@ Zeus brings IDE-like shell completion to your terminal of choice, equipped with 
 
 | Feature                    | Status | Release Version |
 |----------------------------|--------|--------------------|
-| Shell Proxy                | :x:     |                    |
-| TUI based completion       | :x:     |                    |
-| Support for fig/autocomplete | :x:     |                    |
-| Systemd service manifests  | :x:     |                    |
-| Installation scripts       | :x:     |                    |
-| Packaging for dnf          | :x:     |                    |
-| Packaging for AUR          | :x:     |                    |
-| Packaging for apt          | :x:     |                    |
+| Shell Proxy                | :x:    |                    |
+| TUI based completion       | :x:    |                    |
+| Support for fig/autocomplete | :x:  |                    |
+| Systemd service manifests  | :x:    |                    |
+| Installation scripts       | :x:    |                    |
+| Packaging for dnf          | :x:    |                    |
+| Packaging for AUR          | :x:    |                    |
+| Packaging for apt          | :x:    |                    |
 | .dotfile management based on git | :x: | |
 | GUI | :x: | |
 | REST Client | :x: | |
