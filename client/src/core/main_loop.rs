@@ -9,9 +9,7 @@ use std::{
 use tokio::sync::mpsc;
 use tokio::sync::mpsc::Receiver;
 
-use common::{
-	protocol::{message::Message, utils::raw_message},
-};
+use common::protocol::{message::Message, utils::raw_message};
 use inotify::Inotify;
 
 use super::{init::get_term_state, term_state::TermState};
@@ -29,18 +27,18 @@ pub async fn start_input_handler(fd: BorrowedFd<'_>, mut state_chan: Receiver<Te
 	while let Ok(data) = io_handler.read() {
 		let mut keys: Vec<u8> = Vec::new();
 
-    if let Ok(val) = state_chan.try_recv() {
-        state = val;
-    }
+		if let Ok(val) = state_chan.try_recv() {
+			state = val;
+		}
 
-    match state {
-        TermState::Forward => {
-            // TODO: handle to forward the data to the shell
-        },
-        TermState::Normal => {
-            // TODO: intercept the data and handle the auto completion logic
-        }
-    }
+		match state {
+			TermState::Forward => {
+				// TODO: handle to forward the data to the shell
+			}
+			TermState::Normal => {
+				// TODO: intercept the data and handle the auto completion logic
+			}
+		}
 	}
 }
 
