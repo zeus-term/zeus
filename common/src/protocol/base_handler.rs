@@ -1,49 +1,59 @@
+use log::{debug, error};
+use nix::pty::PtyMaster;
+use postcard::{from_bytes, Error};
 use std::{
 	io::BufRead,
 	io::{BufReader, Write},
 	os::{
 		fd::{AsRawFd, FromRawFd},
+		linux,
 		unix::net::UnixStream,
 	},
+	sync::Arc,
 };
-
-use log::error;
-use postcard::{from_bytes, Error};
+#[cfg(feature = "client")]
+use tokio::sync::oneshot::Sender;
 
 use crate::err::Error as ZError;
 
-use super::{master::Message, utils::raw_message};
+use super::{message::Message, utils::raw_message};
 
 #[cfg(feature = "master")]
 pub struct Context {
 	pub sock_fd: i32,
+	pub master: Option<PtyMaster>,
 }
 
 #[cfg(feature = "master")]
 impl Context {
 	pub fn new(sock_fd: i32) -> Context {
-		Context { sock_fd }
+		Context {
+			sock_fd,
+			master: None,
+		}
 	}
 }
 
 #[cfg(feature = "client")]
 pub struct Context {
 	pub sock_fd: i32,
+	pub pid_tx: Sender<i32>,
 }
 #[cfg(feature = "client")]
 impl Context {
-	pub fn new(sock_fd: i32) -> Context {
-		Context { sock_fd }
+	pub fn new(sock_fd: i32, pid_tx: Sender<i32>) -> Context {
+		Context { sock_fd, pid_tx }
 	}
 }
 
-type Handler = fn(Message, Context) -> Message;
+type Handler = fn(Message, &Context) -> Option<Message>;
 
 pub struct MessageHandler {
 	pub buf_sock_stream: BufReader<UnixStream>,
 	pub sock_fd: i32,
 	pub sock_stream: UnixStream,
 	pub handle: Handler,
+	pub ctx: Context,
 }
 
 impl MessageHandler {
@@ -58,6 +68,7 @@ impl MessageHandler {
 		Err(ZError::SocketReadError)
 	}
 
+	#[cfg(feature = "master")]
 	pub fn new(sock: UnixStream, handle: Handler) -> MessageHandler {
 		let sock_fd = sock.as_raw_fd();
 		let sock_stream = unsafe { UnixStream::from_raw_fd(sock_fd) };
@@ -67,28 +78,33 @@ impl MessageHandler {
 			sock_fd,
 			sock_stream,
 			handle,
-		}
-	}
-
-	#[cfg(feature = "master")]
-	pub fn prepare_context(&self) -> Context {
-		Context {
-			sock_fd: self.sock_fd,
+			ctx: Context::new(sock_fd),
 		}
 	}
 
 	#[cfg(feature = "client")]
-	pub fn prepare_context(&self) -> Context {
-		Context {
-			sock_fd: self.sock_fd,
+	pub fn new(sock: UnixStream, handle: Handler, pid_tx: Sender<i32>) -> MessageHandler {
+		let sock_fd = sock.as_raw_fd();
+		let sock_stream = unsafe { UnixStream::from_raw_fd(sock_fd) };
+
+		MessageHandler {
+			buf_sock_stream: BufReader::new(sock),
+			sock_fd,
+			sock_stream,
+			handle,
+			ctx: Context::new(sock_fd, pid_tx),
 		}
 	}
 
 	pub async fn start_handler(&mut self) {
 		loop {
-			let ctx = self.prepare_context();
 			let response = match self.read_message() {
-				Ok(msg) => (self.handle)(msg, ctx),
+				Ok(msg) => match (self.handle)(msg, &self.ctx) {
+					Some(res) => res,
+					None => {
+						continue;
+					}
+				},
 				Err(err) => {
 					error!(
 						"Error occurred while reading the message: {}, trace: {}",
@@ -98,6 +114,7 @@ impl MessageHandler {
 					Message::Ack(-1)
 				}
 			};
+			debug!("Message : {:?}", response);
 
 			match raw_message(response) {
 				Ok(raw_res) => {

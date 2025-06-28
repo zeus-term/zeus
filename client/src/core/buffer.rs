@@ -1,4 +1,4 @@
-use std::{fmt, usize};
+use std::fmt;
 
 type Command = Vec<u8>;
 

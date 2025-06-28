@@ -14,5 +14,5 @@ async fn main() {
 		panic!("Error occured when creating a unix pipe");
 	}
 	let stream = connect_master();
-	if let Ok(_res) = start_main_loop(stream) {}
+	if let Ok(_res) = start_main_loop(stream).await {}
 }

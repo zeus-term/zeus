@@ -1,16 +1,17 @@
+use common::protocol::{base_handler::Context, base_handler::MessageHandler, message::Message};
 use log::{error, info};
 use std::os::unix::net::UnixListener;
 
-use common::protocol::{base_handler::Context, base_handler::MessageHandler, master::Message};
-
-pub fn handle(msg: Message, ctx: Context) -> Message {
+pub fn handle(msg: Message, ctx: &Context) -> Option<Message> {
 	match msg {
-		Message::Init => super::command::init::handle(msg, ctx),
-		_ => Message::Ack(-1),
+		Message::Init => Some(super::command::init::handle(msg, ctx)),
+		Message::Forward(size, data) => Some(super::command::forward::handle(size, data, ctx)),
+		Message::Ack(_val) => None,
+		_ => Some(Message::Ack(-1)),
 	}
 }
 
-pub fn handler(listener: UnixListener) {
+pub fn request_handler(listener: UnixListener) {
 	loop {
 		info!("Starting v2 master listener...");
 		match listener.accept() {

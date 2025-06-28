@@ -10,20 +10,15 @@ pub enum ZForkResponse {
 	Child,
 }
 
-pub fn fork_process(
-	forward1: FdForward,
-	forward2: FdForward,
-	pts_path: &str,
-) -> Result<ZForkResponse, Error> {
+pub fn fork_process(forwarders: &[FdForward], pts_path: &str) -> Result<ZForkResponse, Error> {
 	match unsafe { fork() } {
 		Ok(ForkResult::Parent { child }) => {
-			tokio::task::spawn_blocking(move || {
-				start_forwarder(forward1.from, forward1.to);
-			});
-
-			tokio::task::spawn_blocking(move || {
-				start_forwarder(forward2.from, forward2.to);
-			});
+			for fwd in forwarders {
+				let FdForward { from, to } = *fwd;
+				tokio::task::spawn_blocking(move || {
+					start_forwarder(from, to);
+				});
+			}
 
 			Ok(ZForkResponse::Parent(child))
 		}

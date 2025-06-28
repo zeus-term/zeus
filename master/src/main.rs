@@ -1,7 +1,7 @@
 pub mod core;
 
 use common::constants::socket::CLIENT_COMM;
-use core::service::v2::handler::handler;
+use core::service::v2::handler::request_handler;
 use core::utils::socket::cleanup_socket;
 use log::info;
 use simple_logger::SimpleLogger;
@@ -20,7 +20,7 @@ async fn main() -> io::Result<()> {
 
 	let listener = UnixListener::bind(CLIENT_COMM)?;
 
-	handler(listener);
+	request_handler(listener);
 
 	Ok(())
 }

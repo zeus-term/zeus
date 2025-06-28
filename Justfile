@@ -1,4 +1,5 @@
-projects := "client master common"
+projects := "master client"
+fmt_projects := "master client common"
 alias dz := dev-zeus
 alias dt := dev-term
 
@@ -13,7 +14,7 @@ dev-term:
 
 fmt:
   #!/bin/bash
-  for project in {{projects}}; do
+  for project in {{fmt_projects}}; do
     cd $project
     cargo fmt
     cd ..

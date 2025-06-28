@@ -8,3 +8,4 @@ pub mod key_mapper;
 pub mod main_loop;
 pub mod master_cmd;
 pub mod socket;
+pub mod term_state;

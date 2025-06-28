@@ -1,4 +1,4 @@
-use super::master::Message;
+use super::message::Message;
 use crate::{constants::character::general_ascii_chars::NEWLINE, err::Error as ZError};
 use postcard::to_slice;
 

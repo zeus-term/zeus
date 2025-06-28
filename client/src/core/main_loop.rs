@@ -1,62 +1,60 @@
 use core::panic;
 use std::{
 	io::{self, Write},
-	os::{fd::{AsFd, AsRawFd}, unix::net::UnixStream},
+	os::{
+		fd::{AsRawFd, BorrowedFd},
+		unix::net::UnixStream,
+	},
 };
+use tokio::sync::mpsc;
+use tokio::sync::mpsc::Receiver;
 
-use common::{constants::STDIN_FILENO, forwarder::start_forwarder, protocol::{master::Message, utils::raw_message}};
+use common::{
+	protocol::{message::Message, utils::raw_message},
+};
 use inotify::Inotify;
-use nix::unistd::{dup, write};
-use std::thread;
 
-use crate::utils::buffer::handle_input;
-
-use super::init::get_term_state;
+use super::{init::get_term_state, term_state::TermState};
 
 fn init(stream: &mut UnixStream) {
 	let msg = Message::Init;
-	stream.write(raw_message(msg).unwrap().as_slice());
+	let _ = stream.write_all(raw_message(msg).unwrap().as_slice());
 }
 
-pub fn start_main_loop(sock: UnixStream) -> io::Result<()> {
+pub async fn start_input_handler(fd: BorrowedFd<'_>, mut state_chan: Receiver<TermState>) {
+	let (mut io_handler, mut buffer, key_mapper) = get_term_state();
+	let _ = io_handler.disable_line_buffering();
+	let mut state = state_chan.recv().await.unwrap();
+
+	while let Ok(data) = io_handler.read() {
+		let mut keys: Vec<u8> = Vec::new();
+
+    if let Ok(val) = state_chan.try_recv() {
+        state = val;
+    }
+
+    match state {
+        TermState::Forward => {
+            // TODO: handle to forward the data to the shell
+        },
+        TermState::Normal => {
+            // TODO: intercept the data and handle the auto completion logic
+        }
+    }
+	}
+}
+
+pub async fn start_main_loop(sock: UnixStream) -> io::Result<()> {
 	let mut stream = sock;
 	init(&mut stream);
-	let fd = stream.as_fd();
-	let mut inotity = match Inotify::init() {
+	let fd = stream.as_raw_fd();
+	let _inotity = match Inotify::init() {
 		Ok(inotify) => inotify,
 		Err(_) => {
 			panic!("Error intiializing inotify");
 		}
 	};
-	let (mut handler, mut buffer, key_mapper) = get_term_state();
+	let (tx, wx) = mpsc::channel::<TermState>(1);
 
-	let sync_fd = dup(fd.as_raw_fd());
-	let join_handle = thread::spawn(move || {
-		start_forwarder(sync_fd.unwrap(), STDIN_FILENO);
-	});
-
-	handler.disable_line_buffering()?;
-	while let Ok(data) = handler.read() {
-		let mut keys: Vec<u8> = Vec::new();
-
-		if !buffer.in_buf.is_empty() {
-			keys.extend_from_slice(&buffer.in_buf);
-		}
-
-		keys.push(data);
-
-		if let Ok(callback) = key_mapper.key_fn(&keys) {
-			let data = handle_input(callback(), &mut buffer, &mut handler, false);
-			if let Some(data) = data {
-				let _ = write(fd.as_fd(), &data);
-			}
-		} else {
-			buffer.flush_buffer();
-		}
-		io::stdout().flush()?;
-	}
-	let _ = join_handle.join();
 	Ok(())
 }
-
-

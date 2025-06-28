@@ -9,6 +9,7 @@ pub enum Error {
 	ConnectionRefusedError,
 	SerializationError,
 	DeserializationError,
+	EmptyMessageError,
 }
 
 impl Display for Error {
@@ -26,6 +27,7 @@ impl Display for Error {
 				ConnectionRefusedError => "Error accepting connections",
 				SerializationError => "Message serialization error",
 				DeserializationError => "Message deserialization error",
+				EmptyMessageError => "No message found error",
 			}
 		)
 	}
