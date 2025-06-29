@@ -1,28 +1,31 @@
 use core::panic;
 use std::{
-	io::{self, Write},
-	os::{
-		fd::{AsRawFd, BorrowedFd},
-		unix::net::UnixStream,
-	},
+	io::{self},
+	os::unix::net::UnixStream,
 };
 use tokio::sync::mpsc;
 use tokio::sync::mpsc::Receiver;
 
-use common::protocol::{message::Message, utils::raw_message};
+use common::protocol::{base_handler::MessageHandler, message::Message};
 use inotify::Inotify;
 
-use super::{init::get_term_state, term_state::TermState};
+use super::{command::handler::ClientMessageHandler, init::get_term_state, term_state::TermState};
+use crate::core::command::context::Context;
 
-fn init(stream: &mut UnixStream) {
-	let msg = Message::Init;
-	let _ = stream.write_all(raw_message(msg).unwrap().as_slice());
-}
+const INIT_MSG: Message = Message::Init;
 
-pub async fn start_input_handler(fd: BorrowedFd<'_>, mut state_chan: Receiver<TermState>) {
+pub async fn start_input_handler(mut stream: UnixStream, mut state_chan: Receiver<TermState>) {
 	let (mut io_handler, mut buffer, key_mapper) = get_term_state();
 	let _ = io_handler.disable_line_buffering();
 	let mut state = state_chan.recv().await.unwrap();
+	let mut msg_handler = ClientMessageHandler::new(
+		Context {
+			pid_tx: None,
+			sock_fd: None,
+		},
+		stream,
+	);
+	let _ = msg_handler.send_response(&INIT_MSG);
 
 	while let Ok(data) = io_handler.read() {
 		let mut keys: Vec<u8> = Vec::new();
@@ -43,16 +46,16 @@ pub async fn start_input_handler(fd: BorrowedFd<'_>, mut state_chan: Receiver<Te
 }
 
 pub async fn start_main_loop(sock: UnixStream) -> io::Result<()> {
-	let mut stream = sock;
-	init(&mut stream);
-	let fd = stream.as_raw_fd();
+	let stream = sock;
 	let _inotity = match Inotify::init() {
 		Ok(inotify) => inotify,
 		Err(_) => {
 			panic!("Error intiializing inotify");
 		}
 	};
+
 	let (tx, wx) = mpsc::channel::<TermState>(1);
+	start_input_handler(stream, wx).await;
 
 	Ok(())
 }

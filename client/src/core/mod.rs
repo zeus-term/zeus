@@ -1,7 +1,6 @@
 pub mod buffer;
 pub mod command;
 pub mod err;
-pub mod handler;
 pub mod init;
 pub mod io;
 pub mod key_mapper;

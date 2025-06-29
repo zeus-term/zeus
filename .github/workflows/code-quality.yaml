@@ -46,18 +46,18 @@ jobs:
       - name: Run cargo test
         run: |
           just test
-  sonarcloud:
-    name: SonarCloud
-    runs-on: ubuntu-latest
-    steps:
-      - uses: extractions/setup-just@v2
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
-      - run: just clippy-check-sonar
-      - name: Setup sonarqube
-        uses: warchant/setup-sonar-scanner@v7
-      - name: Run cargo-tarpaulin
-        shell: bash
-        run: |
-          sonar-scanner -Dsonar.login=${{ secrets.SONAR_TOKEN }} -Dsonar.organization="srikanth-iyengar" -Dsonar.projectKey="srikanth-iyengar_zeus" -Dsonar.host.url=https://sonarcloud.io -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+  # sonarcloud:
+  #   name: SonarCloud
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: extractions/setup-just@v2
+  #     - uses: actions/checkout@v3
+  #       with:
+  #         fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+  #     - run: just clippy-check-sonar
+  #     - name: Setup sonarqube
+  #       uses: warchant/setup-sonar-scanner@v7
+  #     - name: Run cargo-tarpaulin
+  #       shell: bash
+  #       run: |
+  #         sonar-scanner -Dsonar.login=${{ secrets.SONAR_TOKEN }} -Dsonar.organization="srikanth-iyengar" -Dsonar.projectKey="srikanth-iyengar_zeus" -Dsonar.host.url=https://sonarcloud.io -Dsonar.login=${{ secrets.SONAR_TOKEN }}

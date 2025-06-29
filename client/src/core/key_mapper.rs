@@ -86,7 +86,7 @@ impl KeyMapper {
 	) -> Result<&Box<dyn Fn() -> KeypressAction + Send>, BindingNotPresentError> {
 		let key = hash(keys);
 
-		if self.key_fn_map.get(&key).is_none() {
+		if !self.key_fn_map.contains_key(&key) {
 			return Err(BindingNotPresentError { hash: key });
 		}
 		Ok(self.key_fn_map.get(&key).unwrap())
