@@ -3,14 +3,14 @@ use std::{
 	io::{self},
 	os::unix::net::UnixStream,
 };
-use tokio::sync::mpsc;
 use tokio::sync::mpsc::Receiver;
+use tokio::{sync::mpsc, task};
 
 use common::protocol::{base_handler::MessageHandler, message::Message};
 use inotify::Inotify;
 
 use super::{command::handler::ClientMessageHandler, init::get_term_state, term_state::TermState};
-use crate::core::command::context::Context;
+use crate::{core::command::context::Context, utils::buffer::handle_input};
 
 const INIT_MSG: Message = Message::Init;
 
@@ -36,10 +36,25 @@ pub async fn start_input_handler(mut stream: UnixStream, mut state_chan: Receive
 
 		match state {
 			TermState::Forward => {
-				// TODO: handle to forward the data to the shell
+				// Just forward to the shell nothing crazye :)
+				let msg: Vec<u8> = vec![data];
+				let _ = msg_handler.send_response(&Message::Forward(1, msg));
 			}
 			TermState::Normal => {
-				// TODO: intercept the data and handle the auto completion logic
+				if !buffer.in_buf.is_empty() {
+					keys.extend_from_slice(&buffer.in_buf);
+				}
+
+				keys.push(data);
+				if let Ok(callback) = key_mapper.key_fn(&keys) {
+					let data = handle_input(callback(), &mut buffer, &mut io_handler, false);
+					if let Some(data) = data {
+						let _ =
+							msg_handler.send_response(&Message::Forward(data.len() as u32, data));
+					}
+				} else {
+					buffer.flush_buffer();
+				}
 			}
 		}
 	}
@@ -55,7 +70,9 @@ pub async fn start_main_loop(sock: UnixStream) -> io::Result<()> {
 	};
 
 	let (tx, wx) = mpsc::channel::<TermState>(1);
-	start_input_handler(stream, wx).await;
+	let join = task::spawn(start_input_handler(stream, wx));
+	tx.send(TermState::Normal).await;
+	join.await;
 
 	Ok(())
 }
