@@ -1,5 +1,5 @@
 use common::protocol::{base_handler::MessageHandler, message::Message};
-use log::{error, info};
+use log::{debug, error, info};
 use std::{
 	io::BufReader,
 	os::{
@@ -9,15 +9,6 @@ use std::{
 };
 
 use super::context::Context;
-
-pub fn handle(msg: Message, ctx: &Context) -> Option<Message> {
-	match msg {
-		Message::Init => Some(super::command::init::handle(msg, ctx)),
-		Message::Forward(size, data) => Some(super::command::forward::handle(size, data, ctx)),
-		Message::Ack(_val) => None,
-		_ => Some(Message::Ack(-1)),
-	}
-}
 
 pub struct MasterMessageHandler {
 	ctx: Context,
@@ -57,8 +48,8 @@ impl MessageHandler<Context> for MasterMessageHandler {
 }
 
 pub fn request_handler(listener: UnixListener) {
+	info!("Starting v2 master listener...");
 	loop {
-		info!("Starting v2 master listener...");
 		match listener.accept() {
 			Ok((stream, _)) => {
 				let mut handler = MasterMessageHandler::new(

@@ -1,7 +1,7 @@
 use std::os::fd::AsRawFd;
 
 use common::{err::Error, forwarder::FdForward, protocol::message::Message};
-use log::info;
+use log::{debug, info};
 use nix::{
 	fcntl::OFlag,
 	pty::{grantpt, posix_openpt, ptsname_r, unlockpt, PtyMaster},
@@ -13,6 +13,7 @@ use super::z_fork::fork_process;
 /// Message handler for INIT event
 /// Refer https://github.com/zeus-term/zeus/
 pub fn handle(_msg: Message, ctx: &Context) -> Message {
+	info!("in init");
 	if let Ok((pty_master, pty_path)) = create_pty() {
 		let pty_to_sock = FdForward {
 			from: ctx.sock_fd,
@@ -27,8 +28,10 @@ pub fn handle(_msg: Message, ctx: &Context) -> Message {
 			return Message::AckPty(pty_path, pid);
 		}
 
+		debug!("Sending -1");
 		return Message::Ack(-1);
 	}
+	debug!("Sending -1");
 	Message::Ack(-1)
 }
 
